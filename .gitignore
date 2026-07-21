@@ -92,6 +92,10 @@ marimo/_lsp/
 __marimo__/
 .streamlit/secrets.toml
 
+# ── Generated / test output (never commit) ───────────────────────────────
+eops/results.csv
+eops/__pycache__/
+
 # ── OS ────────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
