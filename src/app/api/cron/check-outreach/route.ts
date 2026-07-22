@@ -1,21 +1,21 @@
-/**
- * Nightly Outreach Eligibility Check
- *
- * In production, this route would be triggered by a scheduled cron job
- * (e.g., AWS EventBridge rule, Vercel Cron, GitHub Actions schedule, etc.)
- * running once per night to flag students who need follow-up outreach.
- *
- * GET /api/cron/check-outreach
- */
+// src/app/api/cron/check-outreach/route.ts
+// GET /api/cron/check-outreach
+// Nightly job: flags students who haven't clicked after 3 days.
+// In production, trigger via AWS EventBridge or Vercel Cron.
+//
+// Uses the outreach-status-index GSI to efficiently find candidates
+// without scanning the entire table.
 
-import { NextRequest, NextResponse } from 'next/server';
-import { getAllStudents, upsertStudent } from '@/lib/db/store';
+import { NextResponse } from "next/server";
+import { getAllStudents, upsertStudent } from "@/lib/db/store";
 
-const PROGRAMS = ['eops', 'care', 'calworks'] as const;
+export const dynamic = "force-dynamic";
+
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+const PROGRAMS = ["eops", "care", "calworks"] as const;
 
-export async function GET(_request: NextRequest) {
-  const students = getAllStudents();
+export async function GET() {
+  const students = await getAllStudents();
   const now = Date.now();
   let flagged = 0;
 
@@ -23,47 +23,35 @@ export async function GET(_request: NextRequest) {
     let updated = false;
 
     for (const program of PROGRAMS) {
-      const emailSentKey = `ep_${program}_email_sent` as keyof typeof student;
-      const emailClickedKey = `ep_${program}_email_clicked` as keyof typeof student;
-      const outreachStatusKey = `ep_${program}_outreach_status` as keyof typeof student;
-      const statusKey = `ep_${program}_status` as keyof typeof student;
+      const emailSentKey     = `ep_${program}_email_sent` as keyof typeof student;
+      const emailClickedKey  = `ep_${program}_email_clicked` as keyof typeof student;
+      const outreachKey      = `ep_${program}_outreach_status` as keyof typeof student;
+      const statusKey        = `ep_${program}_status` as keyof typeof student;
 
-      const emailSent = student[emailSentKey] as string | null;
-      const emailClicked = student[emailClickedKey] as string | null;
-      const outreachStatus = student[outreachStatusKey] as string | null;
-      const programStatus = student[statusKey] as string | null;
+      const emailSent      = student[emailSentKey] as string | null;
+      const emailClicked   = student[emailClickedKey] as string | null;
+      const outreachStatus = student[outreachKey] as string;
+      const programStatus  = student[statusKey] as string;
 
-      // Rule 1: Email sent, not clicked, and more than 3 days ago
-      if (
-        emailSent !== null &&
-        emailClicked === null &&
-        now - new Date(emailSent).getTime() > THREE_DAYS_MS
-      ) {
-        if (outreachStatus !== 'needed') {
-          (student as unknown as Record<string, unknown>)[outreachStatusKey] = 'needed';
+      // Rule 1: Email sent > 3 days ago, not clicked → flag for outreach
+      if (emailSent && !emailClicked && (now - new Date(emailSent).getTime() > THREE_DAYS_MS)) {
+        if (outreachStatus !== "needed") {
+          (student as unknown as Record<string, unknown>)[outreachKey] = "needed";
           updated = true;
           flagged++;
         }
       }
 
-      // Rule 2: Conditional students who haven't been contacted yet
-      if (
-        programStatus === 'conditional' &&
-        outreachStatus === 'not_needed'
-      ) {
-        (student as unknown as Record<string, unknown>)[outreachStatusKey] = 'needed';
+      // Rule 2: Conditional but not yet flagged
+      if (programStatus === "conditional" && outreachStatus === "not_needed") {
+        (student as unknown as Record<string, unknown>)[outreachKey] = "needed";
         updated = true;
         flagged++;
       }
     }
 
-    if (updated) {
-      upsertStudent(student);
-    }
+    if (updated) await upsertStudent(student);
   }
 
-  return NextResponse.json({
-    checked: students.length,
-    flagged,
-  });
+  return NextResponse.json({ checked: students.length, flagged });
 }

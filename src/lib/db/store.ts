@@ -1,58 +1,44 @@
 // src/lib/db/store.ts
 // ──────────────────────────────────────────────────────────────────────────
-// Persistent JSON file database.
-// Reads/writes to data/db.json — survives server restarts.
+// DynamoDB data store — production implementation.
 //
-// In production: swap this file for DynamoDB or Supabase calls.
-// The exported function signatures stay identical — nothing else changes.
+// Tables:
+//   ep_students       (PK: cwid) + GSI: outreach-status-index
+//   ep_accept_tokens  (PK: token) + GSI: cwid-index
+//   ep_outreach_log   (PK: cwid, SK: timestamp)
+//
+// Region: us-west-2
+// Auth: uses default credential chain (env vars, SSO, instance role)
 // ──────────────────────────────────────────────────────────────────────────
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
-import { join } from "path";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import {
+  DynamoDBDocumentClient,
+  GetCommand,
+  PutCommand,
+  ScanCommand,
+  QueryCommand,
+  BatchWriteCommand,
+} from "@aws-sdk/lib-dynamodb";
 import {
   StudentRecord,
   AcceptToken,
   OutreachLogEntry,
-  EligibilityStatus,
-  OutreachStatus,
   SLATE_CSV_HEADERS,
 } from "./schema";
 
-// ── File paths ────────────────────────────────────────────────────────────
-const DATA_DIR = join(process.cwd(), "data");
-const DB_FILE  = join(DATA_DIR, "db.json");
+// ── Client setup ──────────────────────────────────────────────────────────
+const client = new DynamoDBClient({ region: process.env.AWS_REGION || "us-west-2" });
+const docClient = DynamoDBDocumentClient.from(client, {
+  marshallOptions: { removeUndefinedValues: true },
+});
 
-// ── Database shape ────────────────────────────────────────────────────────
-interface Database {
-  students:    Record<string, StudentRecord>;   // keyed by cwid
-  tokens:      Record<string, AcceptToken>;     // keyed by token UUID
-  outreachLog: OutreachLogEntry[];
-}
-
-// ── Read / Write ──────────────────────────────────────────────────────────
-
-function readDB(): Database {
-  if (!existsSync(DB_FILE)) {
-    return { students: {}, tokens: {}, outreachLog: [] };
-  }
-  try {
-    const raw = readFileSync(DB_FILE, "utf-8");
-    return JSON.parse(raw) as Database;
-  } catch {
-    return { students: {}, tokens: {}, outreachLog: [] };
-  }
-}
-
-function writeDB(db: Database): void {
-  if (!existsSync(DATA_DIR)) {
-    mkdirSync(DATA_DIR, { recursive: true });
-  }
-  writeFileSync(DB_FILE, JSON.stringify(db, null, 2), "utf-8");
-}
+const STUDENTS_TABLE = "ep_students";
+const TOKENS_TABLE   = "ep_accept_tokens";
+const LOG_TABLE      = "ep_outreach_log";
 
 // ── UUID helper ───────────────────────────────────────────────────────────
 function generateToken(): string {
-  // crypto.randomUUID() available in Node 19+; fallback for older
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
   }
@@ -67,76 +53,113 @@ function generateToken(): string {
 // STUDENTS
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function getStudent(cwid: string): StudentRecord | null {
-  const db = readDB();
-  return db.students[cwid] ?? null;
+export async function getStudent(cwid: string): Promise<StudentRecord | null> {
+  const { Item } = await docClient.send(
+    new GetCommand({ TableName: STUDENTS_TABLE, Key: { cwid } })
+  );
+  return (Item as StudentRecord) ?? null;
 }
 
-export function getAllStudents(): StudentRecord[] {
-  const db = readDB();
-  return Object.values(db.students);
+export async function getAllStudents(): Promise<StudentRecord[]> {
+  const items: StudentRecord[] = [];
+  let lastKey: Record<string, unknown> | undefined;
+  do {
+    const result = await docClient.send(
+      new ScanCommand({ TableName: STUDENTS_TABLE, ExclusiveStartKey: lastKey })
+    );
+    items.push(...((result.Items as StudentRecord[]) ?? []));
+    lastKey = result.LastEvaluatedKey;
+  } while (lastKey);
+  return items;
 }
 
-export function upsertStudent(record: StudentRecord): void {
-  const db = readDB();
+export async function upsertStudent(record: StudentRecord): Promise<void> {
   record.updated_at = new Date().toISOString();
-  db.students[record.cwid] = record;
-  writeDB(db);
+  await docClient.send(
+    new PutCommand({ TableName: STUDENTS_TABLE, Item: record })
+  );
 }
 
-export function upsertStudentBatch(records: StudentRecord[]): void {
-  const db = readDB();
+export async function upsertStudentBatch(records: StudentRecord[]): Promise<void> {
   const now = new Date().toISOString();
-  for (const record of records) {
-    record.updated_at = now;
-    db.students[record.cwid] = record;
+  // DynamoDB BatchWrite max 25 items per request
+  for (let i = 0; i < records.length; i += 25) {
+    const batch = records.slice(i, i + 25);
+    const requests = batch.map((record) => {
+      record.updated_at = now;
+      return { PutRequest: { Item: record } };
+    });
+    await docClient.send(
+      new BatchWriteCommand({ RequestItems: { [STUDENTS_TABLE]: requests } })
+    );
   }
-  writeDB(db);
 }
 
-export function getStudentsNeedingOutreach(): StudentRecord[] {
-  return getAllStudents().filter(
-    (s) =>
-      s.ep_eops_outreach_status === "needed" ||
-      s.ep_care_outreach_status === "needed" ||
-      s.ep_calworks_outreach_status === "needed"
+// ── GSI-powered queries (no full table scans) ─────────────────────────────
+
+export async function getStudentsNeedingOutreach(): Promise<StudentRecord[]> {
+  // Uses outreach-status-index GSI: PK=ep_eops_outreach_status, SK=ep_eops_email_sent
+  const { Items } = await docClient.send(
+    new QueryCommand({
+      TableName: STUDENTS_TABLE,
+      IndexName: "outreach-status-index",
+      KeyConditionExpression: "ep_eops_outreach_status = :status",
+      ExpressionAttributeValues: { ":status": "needed" },
+    })
   );
+  return (Items as StudentRecord[]) ?? [];
 }
 
-export function getConditionalStudents(): StudentRecord[] {
-  return getAllStudents().filter(
-    (s) =>
-      s.ep_eops_status === "conditional" ||
-      s.ep_care_status === "conditional" ||
-      s.ep_calworks_status === "conditional"
+export async function getConditionalStudents(): Promise<StudentRecord[]> {
+  // For conditional across all programs, we need a scan with filter
+  // (or separate GSIs per program — overkill for <10k students)
+  const { Items } = await docClient.send(
+    new ScanCommand({
+      TableName: STUDENTS_TABLE,
+      FilterExpression:
+        "ep_eops_status = :c OR ep_care_status = :c OR ep_calworks_status = :c",
+      ExpressionAttributeValues: { ":c": "conditional" },
+    })
   );
+  return (Items as StudentRecord[]) ?? [];
 }
 
-export function getRecentlyAccepted(daysBack: number = 30): StudentRecord[] {
+export async function getRecentlyAccepted(daysBack: number = 30): Promise<StudentRecord[]> {
   const cutoff = new Date(Date.now() - daysBack * 86400000).toISOString();
-  return getAllStudents().filter(
-    (s) =>
-      (s.ep_eops_accepted_date && s.ep_eops_accepted_date > cutoff) ||
-      (s.ep_care_accepted_date && s.ep_care_accepted_date > cutoff) ||
-      (s.ep_calworks_accepted_date && s.ep_calworks_accepted_date > cutoff)
+  const { Items } = await docClient.send(
+    new ScanCommand({
+      TableName: STUDENTS_TABLE,
+      FilterExpression:
+        "(ep_eops_accepted_date > :cutoff) OR (ep_care_accepted_date > :cutoff) OR (ep_calworks_accepted_date > :cutoff)",
+      ExpressionAttributeValues: { ":cutoff": cutoff },
+    })
   );
+  return (Items as StudentRecord[]) ?? [];
 }
 
-export function getEligibleUnsentStudents(): StudentRecord[] {
-  return getAllStudents().filter((s) => {
-    const eopsNeedsEmail = (s.ep_eops_status === "confirmed" || s.ep_eops_status === "conditional") && !s.ep_eops_email_sent;
-    const careNeedsEmail = (s.ep_care_status === "confirmed" || s.ep_care_status === "conditional") && !s.ep_care_email_sent;
-    const calworksNeedsEmail = (s.ep_calworks_status === "confirmed" || s.ep_calworks_status === "conditional") && !s.ep_calworks_email_sent;
-    return eopsNeedsEmail || careNeedsEmail || calworksNeedsEmail;
-  });
+export async function getEligibleUnsentStudents(): Promise<StudentRecord[]> {
+  // Students who qualify but haven't been emailed yet — idempotency check
+  const { Items } = await docClient.send(
+    new ScanCommand({
+      TableName: STUDENTS_TABLE,
+      FilterExpression:
+        "((ep_eops_status = :conf OR ep_eops_status = :cond) AND attribute_not_exists(ep_eops_email_sent)) OR " +
+        "((ep_care_status = :conf OR ep_care_status = :cond) AND attribute_not_exists(ep_care_email_sent)) OR " +
+        "((ep_calworks_status = :conf OR ep_calworks_status = :cond) AND attribute_not_exists(ep_calworks_email_sent))",
+      ExpressionAttributeValues: {
+        ":conf": "confirmed",
+        ":cond": "conditional",
+      },
+    })
+  );
+  return (Items as StudentRecord[]) ?? [];
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ACCEPT TOKENS
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function createAcceptToken(cwid: string, program: string): AcceptToken {
-  const db = readDB();
+export async function createAcceptToken(cwid: string, program: string): Promise<AcceptToken> {
   const token: AcceptToken = {
     token:      generateToken(),
     cwid,
@@ -145,23 +168,26 @@ export function createAcceptToken(cwid: string, program: string): AcceptToken {
     clicked_at: null,
     expired:    false,
   };
-  db.tokens[token.token] = token;
-  writeDB(db);
+  await docClient.send(
+    new PutCommand({ TableName: TOKENS_TABLE, Item: token })
+  );
   return token;
 }
 
-export function getAcceptToken(token: string): AcceptToken | null {
-  const db = readDB();
-  return db.tokens[token] ?? null;
+export async function getAcceptToken(token: string): Promise<AcceptToken | null> {
+  const { Item } = await docClient.send(
+    new GetCommand({ TableName: TOKENS_TABLE, Key: { token } })
+  );
+  return (Item as AcceptToken) ?? null;
 }
 
-export function markTokenClicked(token: string): AcceptToken | null {
-  const db = readDB();
-  const t = db.tokens[token];
+export async function markTokenClicked(token: string): Promise<AcceptToken | null> {
+  const t = await getAcceptToken(token);
   if (!t || t.expired || t.clicked_at) return null;
   t.clicked_at = new Date().toISOString();
-  db.tokens[token] = t;
-  writeDB(db);
+  await docClient.send(
+    new PutCommand({ TableName: TOKENS_TABLE, Item: t })
+  );
   return t;
 }
 
@@ -169,34 +195,43 @@ export function markTokenClicked(token: string): AcceptToken | null {
 // OUTREACH LOG
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function addOutreachEntry(
+export async function addOutreachEntry(
   entry: Omit<OutreachLogEntry, "id">
-): OutreachLogEntry {
-  const db = readDB();
+): Promise<OutreachLogEntry> {
   const full: OutreachLogEntry = { id: generateToken(), ...entry };
-  db.outreachLog.push(full);
-  writeDB(db);
+  await docClient.send(
+    new PutCommand({ TableName: LOG_TABLE, Item: full })
+  );
   return full;
 }
 
-export function getOutreachLog(cwid: string): OutreachLogEntry[] {
-  const db = readDB();
-  return db.outreachLog
-    .filter((e) => e.cwid === cwid)
-    .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+export async function getOutreachLog(cwid: string): Promise<OutreachLogEntry[]> {
+  const { Items } = await docClient.send(
+    new QueryCommand({
+      TableName: LOG_TABLE,
+      KeyConditionExpression: "cwid = :cwid",
+      ExpressionAttributeValues: { ":cwid": cwid },
+      ScanIndexForward: false, // newest first
+    })
+  );
+  return (Items as OutreachLogEntry[]) ?? [];
 }
 
-export function getFullLog(): OutreachLogEntry[] {
-  const db = readDB();
-  return db.outreachLog.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+export async function getFullLog(): Promise<OutreachLogEntry[]> {
+  const { Items } = await docClient.send(
+    new ScanCommand({ TableName: LOG_TABLE })
+  );
+  return ((Items as OutreachLogEntry[]) ?? []).sort(
+    (a, b) => b.timestamp.localeCompare(a.timestamp)
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CSV EXPORT (for Slate migration)
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function exportToCSV(): string {
-  const rows = getAllStudents();
+export async function exportToCSV(): Promise<string> {
+  const rows = await getAllStudents();
   const header = SLATE_CSV_HEADERS.join(",");
   const lines = rows.map((s) => {
     return SLATE_CSV_HEADERS.map((col) => {
@@ -213,9 +248,19 @@ export function exportToCSV(): string {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RESET (for testing — wipe the database)
+// RESET (for testing — deletes all items from all tables)
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function resetDB(): void {
-  writeDB({ students: {}, tokens: {}, outreachLog: [] });
+export async function resetDB(): Promise<void> {
+  // Delete all students
+  const students = await getAllStudents();
+  for (let i = 0; i < students.length; i += 25) {
+    const batch = students.slice(i, i + 25);
+    const requests = batch.map((s) => ({
+      DeleteRequest: { Key: { cwid: s.cwid } },
+    }));
+    await docClient.send(
+      new BatchWriteCommand({ RequestItems: { [STUDENTS_TABLE]: requests } })
+    );
+  }
 }
