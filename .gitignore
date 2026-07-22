@@ -95,6 +95,7 @@ __marimo__/
 # ── Generated / test output (never commit) ───────────────────────────────
 eops/results.csv
 eops/__pycache__/
+data/db.json
 
 # ── OS ────────────────────────────────────────────────────────────────────
 .DS_Store

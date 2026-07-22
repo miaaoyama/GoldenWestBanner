@@ -4,15 +4,15 @@ import { getStudent, upsertStudent, addOutreachEntry } from "@/lib/db/store";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { cwid, note, staffName } = body as {
+    const { cwid, note, staff_name } = body as {
       cwid: string;
       note: string;
-      staffName: string;
+      staff_name: string;
     };
 
-    if (!cwid || !note || !staffName) {
+    if (!cwid || !note || !staff_name) {
       return NextResponse.json(
-        { error: "Missing required fields: cwid, note, staffName" },
+        { error: "Missing required fields: cwid, note, staff_name" },
         { status: 400 }
       );
     }
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     // Append note to ep_staff_notes
     const existingNotes = student.ep_staff_notes || "";
-    const formattedNote = `[${now}] ${staffName}: ${note}`;
+    const formattedNote = `[${now}] ${staff_name}: ${note}`;
     const updatedNotes = existingNotes
       ? `${existingNotes}\n${formattedNote}`
       : formattedNote;
@@ -47,9 +47,11 @@ export async function POST(request: NextRequest) {
     // Log the outreach entry
     addOutreachEntry({
       cwid,
-      staffName,
-      note,
-      date: now,
+      program:    "general",
+      action:     "staff_note",
+      timestamp:  now,
+      details:    note,
+      staff_name,
     });
 
     return NextResponse.json({ success: true, student: updatedStudent });

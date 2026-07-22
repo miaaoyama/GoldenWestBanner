@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
         const acceptUrl = `${baseUrl}/api/accept?token=${token.token}`;
 
         // Mark email as sent
-        (student as Record<string, unknown>)[`ep_${program}_email_sent`] = now;
+        (student as unknown as Record<string, unknown>)[`ep_${program}_email_sent`] = now;
 
         // Determine document needed for conditional programs
         let documentNeeded: string | undefined;
@@ -97,6 +97,8 @@ export async function POST(request: NextRequest) {
         action: 'email_sent',
         program,
         timestamp: now,
+        details: `Eligibility notification email sent for ${program.toUpperCase()}`,
+        staff_name: null,
       });
     }
 

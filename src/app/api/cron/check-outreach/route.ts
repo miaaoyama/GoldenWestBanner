@@ -40,7 +40,7 @@ export async function GET(_request: NextRequest) {
         now - new Date(emailSent).getTime() > THREE_DAYS_MS
       ) {
         if (outreachStatus !== 'needed') {
-          (student as Record<string, unknown>)[outreachStatusKey] = 'needed';
+          (student as unknown as Record<string, unknown>)[outreachStatusKey] = 'needed';
           updated = true;
           flagged++;
         }
@@ -51,7 +51,7 @@ export async function GET(_request: NextRequest) {
         programStatus === 'conditional' &&
         outreachStatus === 'not_needed'
       ) {
-        (student as Record<string, unknown>)[outreachStatusKey] = 'needed';
+        (student as unknown as Record<string, unknown>)[outreachStatusKey] = 'needed';
         updated = true;
         flagged++;
       }

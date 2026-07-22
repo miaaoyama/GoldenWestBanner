@@ -82,10 +82,10 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const acceptToken = await getAcceptToken(token);
+  const acceptToken = getAcceptToken(token);
 
   // Token not found or expired
-  if (!acceptToken || (acceptToken.expiresAt && new Date(acceptToken.expiresAt) < new Date())) {
+  if (!acceptToken || acceptToken.expired) {
     return htmlPage(
       "Link Expired",
       `<h1>This link has expired</h1>
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Already clicked
-  if (acceptToken.clickedAt) {
+  if (acceptToken.clicked_at) {
     return htmlPage(
       "Already Accepted",
       `<h1>You already accepted</h1>
@@ -103,14 +103,14 @@ export async function GET(request: NextRequest) {
   }
 
   // Valid token — process acceptance
-  await markTokenClicked(token);
+  markTokenClicked(token);
 
-  const student = await getStudent(acceptToken.cwid);
+  const student = getStudent(acceptToken.cwid);
   const program = acceptToken.program;
   const now = new Date().toISOString();
 
   if (student) {
-    await upsertStudent({
+    upsertStudent({
       ...student,
       [`ep_${program}_email_clicked`]: now,
       [`ep_${program}_accepted_date`]: now,
@@ -118,11 +118,13 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  await addOutreachEntry({
+  addOutreachEntry({
     cwid: acceptToken.cwid,
     program,
     action: "accepted",
     timestamp: now,
+    details: `Student clicked the accept link for ${program.toUpperCase()}`,
+    staff_name: null,
   });
 
   const programDisplay = program.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
