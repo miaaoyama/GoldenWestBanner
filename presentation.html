@@ -8,14 +8,16 @@
     /* ── Reset ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* ── GWC Brand Tokens ── */
+    /* ── GWC Brand Tokens (from official branding guide) ── */
     :root {
-      --navy:   #003366;
-      --gold:   #FFCC00;
+      --navy:   #0F603D;    /* Primary Green */
+      --gold:   #FFC522;    /* Primary Gold */
       --white:  #FFFFFF;
-      --light:  #F0F4FA;
-      --gray:   #5A6A7A;
-      --dark:   #0A1628;
+      --light:  #F2F8F5;    /* Light green tint */
+      --gray:   #4A6A5A;
+      --dark:   #033F2B;    /* Dark Green */
+      --mid:    #1A9959;    /* Middle Green */
+      --bright: #BADB3E;    /* Bright Green / Lime */
     }
 
     body {
@@ -380,8 +382,8 @@
       text-transform: uppercase;
       margin-right: 6px;
     }
-    .tier1 { background: #003366; color: #FFCC00; }
-    .tier2 { background: #FFCC00; color: #003366; }
+    .tier1 { background: #0F603D; color: #FFC522; }
+    .tier2 { background: #FFC522; color: #0F603D; }
     .tier3 { background: #6b7280; color: #fff; }
 
     /* progress bar */
