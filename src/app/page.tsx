@@ -70,13 +70,12 @@ export default function StudentPortalPage() {
         </div>
         <nav style={{ display: "flex", gap: "20px" }}>
           {["My Courses", "Schedule", "Financial Aid", "Resources"].map((item) => (
-            <a
+            <span
               key={item}
-              href="#"
-              style={{ color: "rgba(255,255,255,0.85)", fontSize: "13px", textDecoration: "none" }}
+              style={{ color: "rgba(255,255,255,0.85)", fontSize: "13px" }}
             >
               {item}
-            </a>
+            </span>
           ))}
         </nav>
       </header>
