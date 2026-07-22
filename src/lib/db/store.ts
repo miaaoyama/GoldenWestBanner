@@ -75,24 +75,36 @@ export async function getAllStudents(): Promise<StudentRecord[]> {
 
 export async function upsertStudent(record: StudentRecord): Promise<void> {
   record.updated_at = new Date().toISOString();
+  // DynamoDB GSI keys cannot be null — remove null GSI attributes
+  const item = cleanForDynamo(record);
   await docClient.send(
-    new PutCommand({ TableName: STUDENTS_TABLE, Item: record })
+    new PutCommand({ TableName: STUDENTS_TABLE, Item: item })
   );
 }
 
 export async function upsertStudentBatch(records: StudentRecord[]): Promise<void> {
   const now = new Date().toISOString();
-  // DynamoDB BatchWrite max 25 items per request
   for (let i = 0; i < records.length; i += 25) {
     const batch = records.slice(i, i + 25);
     const requests = batch.map((record) => {
       record.updated_at = now;
-      return { PutRequest: { Item: record } };
+      return { PutRequest: { Item: cleanForDynamo(record) } };
     });
     await docClient.send(
       new BatchWriteCommand({ RequestItems: { [STUDENTS_TABLE]: requests } })
     );
   }
+}
+
+// Remove null/undefined values — DynamoDB doesn't accept null for GSI keys
+function cleanForDynamo(record: StudentRecord): Record<string, unknown> {
+  const cleaned: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(record)) {
+    if (value !== null && value !== undefined) {
+      cleaned[key] = value;
+    }
+  }
+  return cleaned;
 }
 
 // ── GSI-powered queries (no full table scans) ─────────────────────────────
