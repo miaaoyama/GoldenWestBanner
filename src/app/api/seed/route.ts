@@ -60,9 +60,9 @@ export async function GET() {
       ep_priority_score: score,
       ep_pending_items: null,
 
-      ep_eops_email_sent: null, ep_eops_email_clicked: null,
-      ep_care_email_sent: null, ep_care_email_clicked: null,
-      ep_calworks_email_sent: null, ep_calworks_email_clicked: null,
+      ep_eops_email_sent: null, ep_eops_email_clicked: null, ep_eops_email_attempts: 0,
+      ep_care_email_sent: null, ep_care_email_clicked: null, ep_care_email_attempts: 0,
+      ep_calworks_email_sent: null, ep_calworks_email_clicked: null, ep_calworks_email_attempts: 0,
 
       ep_eops_accepted_date: null, ep_care_accepted_date: null, ep_calworks_accepted_date: null,
 

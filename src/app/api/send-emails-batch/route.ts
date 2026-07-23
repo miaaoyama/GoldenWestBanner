@@ -1,91 +1,152 @@
 // src/app/api/send-emails-batch/route.ts
+// ──────────────────────────────────────────────────────────────────────────
 // POST /api/send-emails-batch
-// Sends eligibility notification emails to all students who qualify but
-// haven't been emailed yet. IDEMPOTENT — safe to re-run; checks
-// ep_[program]_email_sent before sending to prevent duplicate emails.
+// Sends eligibility notification emails with anti-spam rules:
+//
+//   1. BUSINESS HOURS ONLY — Mon-Fri, 8AM-5PM Pacific
+//   2. MAX 3 ATTEMPTS — after 3 ignored emails, stop permanently
+//   3. STOP AFTER CLICK — if student clicked (accept or opt-out), never email again
+//   4. IDEMPOTENT — safe to re-run, won't double-send
+//
+// Schedule (for production via EventBridge):
+//   Runs daily at 9:00 AM Pacific (Mon-Fri only)
+//   First email: day student is identified as eligible
+//   Second email: 3 days after first (if no response)
+//   Third email: 3 days after second (if no response)
+//   After 3rd: stop emailing, flag for staff phone outreach
+// ──────────────────────────────────────────────────────────────────────────
 
 import { NextResponse } from "next/server";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import {
-  getEligibleUnsentStudents,
+  getAllStudents,
   upsertStudent,
   createAcceptToken,
   addOutreachEntry,
 } from "@/lib/db/store";
+import type { StudentRecord } from "@/lib/db/schema";
 
 export const dynamic = "force-dynamic";
 
 const ses = new SESv2Client({ region: process.env.APP_AWS_REGION || process.env.AWS_REGION || "us-west-2" });
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 const FROM_EMAIL = process.env.SES_FROM_EMAIL || "dankim2022@gmail.com";
-
-// SES sandbox mode: can only send to verified addresses.
-// Set this to a verified email for testing, or null to use student's real email.
 const OVERRIDE_TO_EMAIL = process.env.SES_OVERRIDE_TO || null;
 
-export async function POST() {
-  const students = await getEligibleUnsentStudents();
+const MAX_EMAIL_ATTEMPTS = 3;
+const DAYS_BETWEEN_EMAILS = 3;
 
-  if (students.length === 0) {
+// ── Business hours check (Pacific Time) ───────────────────────────────────
+
+function isBusinessHours(): boolean {
+  // Get current time in Pacific
+  const now = new Date();
+  const pacific = new Date(now.toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
+  const day = pacific.getDay();   // 0=Sun, 1=Mon, ..., 6=Sat
+  const hour = pacific.getHours();
+
+  // Mon-Fri (1-5), 8AM-5PM
+  const isWeekday = day >= 1 && day <= 5;
+  const isWorkHours = hour >= 8 && hour < 17;
+
+  return isWeekday && isWorkHours;
+}
+
+// ── Check if enough time has passed since last email ──────────────────────
+
+function daysSince(dateStr: string | null): number {
+  if (!dateStr) return Infinity;
+  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
+}
+
+// ── Should we email this student for this program? ────────────────────────
+
+function shouldEmail(student: StudentRecord, program: string): boolean {
+  const s = student as unknown as Record<string, unknown>;
+  const status = s[`ep_${program}_status`] as string;
+  const emailClicked = s[`ep_${program}_email_clicked`] as string | null;
+  const emailSent = s[`ep_${program}_email_sent`] as string | null;
+  const attempts = (s[`ep_${program}_email_attempts`] as number) || 0;
+
+  // Rule 1: only email confirmed students
+  if (status !== "confirmed") return false;
+
+  // Rule 2: stop if student already clicked (accepted or opted out)
+  if (emailClicked) return false;
+
+  // Rule 3: stop after max attempts
+  if (attempts >= MAX_EMAIL_ATTEMPTS) return false;
+
+  // Rule 4: if never sent, send now
+  if (!emailSent) return true;
+
+  // Rule 5: if sent before, wait DAYS_BETWEEN_EMAILS days
+  if (daysSince(emailSent) >= DAYS_BETWEEN_EMAILS) return true;
+
+  return false;
+}
+
+// ── Main handler ──────────────────────────────────────────────────────────
+
+export async function POST() {
+  // Check business hours (skip in test mode)
+  const forceMode = process.env.FORCE_SEND === "true";
+  if (!forceMode && !isBusinessHours()) {
+    const now = new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
     return NextResponse.json({
       sent: 0,
-      message: "No students need emails — all eligible students have already been emailed.",
+      message: `Outside business hours (Mon-Fri 8AM-5PM Pacific). Current time: ${now}. Set FORCE_SEND=true to override.`,
+      skipped_reason: "outside_business_hours",
     });
   }
 
+  const allStudents = await getAllStudents();
   const now = new Date().toISOString();
-  const results: { cwid: string; name: string; programs: string[]; links: Record<string, string> }[] = [];
+  const results: { cwid: string; name: string; programs: string[]; attempt: number; links: Record<string, string> }[] = [];
+  let skippedMaxAttempts = 0;
+  let skippedAlreadyClicked = 0;
+  let skippedTooSoon = 0;
 
-  for (const student of students) {
+  for (const student of allStudents) {
     const programs: string[] = [];
     const links: Record<string, string> = {};
+    const s = student as unknown as Record<string, unknown>;
 
-    // EOPS — idempotency: only send if not already sent
-    if ((student.ep_eops_status === "confirmed") && !student.ep_eops_email_sent) {
-      const token = await createAcceptToken(student.cwid, "eops");
-      student.ep_eops_email_sent = now;
-      programs.push("EOPS");
-      links.eops = `${BASE_URL}/api/accept?token=${token.token}`;
-    }
+    for (const prog of ["eops", "care", "calworks"]) {
+      if (!shouldEmail(student, prog)) {
+        // Track skip reasons
+        const status = s[`ep_${prog}_status`] as string;
+        const clicked = s[`ep_${prog}_email_clicked`] as string | null;
+        const attempts = (s[`ep_${prog}_email_attempts`] as number) || 0;
+        if (status === "confirmed" && clicked) skippedAlreadyClicked++;
+        else if (status === "confirmed" && attempts >= MAX_EMAIL_ATTEMPTS) skippedMaxAttempts++;
+        else if (status === "confirmed") skippedTooSoon++;
+        continue;
+      }
 
-    // CARE
-    if ((student.ep_care_status === "confirmed") && !student.ep_care_email_sent) {
-      const token = await createAcceptToken(student.cwid, "care");
-      student.ep_care_email_sent = now;
-      programs.push("CARE");
-      links.care = `${BASE_URL}/api/accept?token=${token.token}`;
-    }
+      // Create accept + optout tokens
+      const acceptToken = await createAcceptToken(student.cwid, prog);
+      const optoutToken = await createAcceptToken(student.cwid, prog + "_optout");
+      links[prog] = `${BASE_URL}/api/accept?token=${acceptToken.token}`;
 
-    // CalWORKs
-    if ((student.ep_calworks_status === "confirmed") && !student.ep_calworks_email_sent) {
-      const token = await createAcceptToken(student.cwid, "calworks");
-      student.ep_calworks_email_sent = now;
-      programs.push("CalWORKs");
-      links.calworks = `${BASE_URL}/api/accept?token=${token.token}`;
+      // Update email sent timestamp and increment attempts
+      s[`ep_${prog}_email_sent`] = now;
+      s[`ep_${prog}_email_attempts`] = ((s[`ep_${prog}_email_attempts`] as number) || 0) + 1;
+      programs.push(prog.toUpperCase());
     }
 
     if (programs.length === 0) continue;
 
-    // Create opt-out tokens for each program too
-    const optoutLinks: Record<string, string> = {};
-    for (const p of programs) {
-      const key = p.toLowerCase().replace("calworks", "calworks");
-      const optoutToken = await createAcceptToken(student.cwid, key + "_optout");
-      optoutLinks[key] = `${BASE_URL}/api/optout?token=${optoutToken.token}`;
-    }
+    const attempts = (s.ep_eops_email_attempts as number) || (s.ep_care_email_attempts as number) || (s.ep_calworks_email_attempts as number) || 1;
 
     // Build email HTML
     const programList = programs.map((p) => {
-      const key = p.toLowerCase().replace("calworks", "calworks");
-      const link = links[key] || links[p.toLowerCase()];
-      const optout = optoutLinks[key];
-      const status = (student as unknown as Record<string, unknown>)[`ep_${key}_status`] as string;
-      const statusLabel = status === "confirmed" ? "100% Qualified" : "Conditionally Qualified";
-      return `<tr><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;">${p}</td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${statusLabel}</td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;"><a href="${link}" style="background:#0F603D;color:#fff;padding:6px 14px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:600;">Accept →</a> <a href="${optout}" style="color:#9ca3af;font-size:11px;margin-left:8px;text-decoration:underline;">Opt out</a></td></tr>`;
+      const key = p.toLowerCase();
+      const link = links[key];
+      return `<tr><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;">${p}</td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">100% Qualified</td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;"><a href="${link}" style="background:#0F603D;color:#fff;padding:6px 14px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:600;">Accept →</a> <a href="${BASE_URL}/api/optout?token=${links[key]?.split('token=')[1] || ''}" style="color:#9ca3af;font-size:11px;margin-left:8px;text-decoration:underline;">Opt out</a></td></tr>`;
     }).join("");
 
-    // General opt-out link (uses first program's token)
-    const firstOptout = optoutLinks[programs[0].toLowerCase().replace("calworks", "calworks")];
+    const attemptNote = attempts > 1 ? `<p style="font-size:12px;color:#92400e;margin-top:12px;background:#fffbeb;padding:8px 12px;border-radius:6px;">This is reminder ${attempts} of ${MAX_EMAIL_ATTEMPTS}. Click Accept or Opt Out to stop receiving these.</p>` : "";
 
     const emailHtml = `
       <div style="font-family:'Segoe UI',sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
@@ -94,9 +155,9 @@ export async function POST() {
           <p style="font-size:15px;color:#1a2a20;">Hi ${student.first_name},</p>
           <p style="font-size:15px;color:#374151;margin-top:12px;">Based on your enrollment records, you qualify for the following support programs at GWC:</p>
           <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;"><thead><tr style="background:#f2f8f5;"><th style="padding:8px 12px;text-align:left;">Program</th><th style="padding:8px 12px;text-align:left;">Status</th><th style="padding:8px 12px;text-align:left;">Action</th></tr></thead><tbody>${programList}</tbody></table>
-          ${student.ep_pending_items ? `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;margin:16px 0;"><p style="font-size:12px;font-weight:700;color:#92400e;text-transform:uppercase;margin:0 0 4px;">Documents needed:</p><p style="font-size:13px;color:#374151;margin:0;">${student.ep_pending_items}</p></div>` : ""}
-          <p style="font-size:13px;color:#6b7280;margin-top:20px;">Click "Accept" to confirm your spot. Each link is personal to you — no application needed.</p>
-          <p style="font-size:11px;color:#9ca3af;margin-top:20px;border-top:1px solid #e5e7eb;padding-top:12px;">Golden West College | 15744 Goldenwest St, Huntington Beach, CA 92647<br><a href="${firstOptout}" style="color:#9ca3af;">Opt out of all program notifications</a></p>
+          ${attemptNote}
+          <p style="font-size:13px;color:#6b7280;margin-top:16px;">Click "Accept" to confirm your spot or "Opt out" to stop receiving these notifications.</p>
+          <p style="font-size:11px;color:#9ca3af;margin-top:20px;border-top:1px solid #e5e7eb;padding-top:12px;">Golden West College | 15744 Goldenwest St, Huntington Beach, CA 92647</p>
         </div>
       </div>`;
 
@@ -108,38 +169,64 @@ export async function POST() {
         Destination: { ToAddresses: [toEmail] },
         Content: {
           Simple: {
-            Subject: { Data: `${student.first_name}, you qualify for ${programs.join(" & ")} at GWC!` },
+            Subject: { Data: attempts > 1 ? `Reminder: ${student.first_name}, you qualify for ${programs.join(" & ")} at GWC` : `${student.first_name}, you qualify for ${programs.join(" & ")} at GWC!` },
             Body: { Html: { Data: emailHtml } },
           },
         },
       }));
-      console.log(`[SES] Sent to ${toEmail} for ${programs.join(", ")}`);
+      console.log(`[SES] Sent to ${toEmail} for ${programs.join(", ")} (attempt ${attempts})`);
     } catch (err) {
       console.error(`[SES ERROR] Failed to send to ${toEmail}:`, err);
-      // Don't block the batch — continue with next student
     }
 
-    // Save updated student (email_sent timestamps now set)
+    // Save updated student
     await upsertStudent(student);
 
-    // Log entries
-    for (const program of programs) {
+    // Log
+    for (const prog of programs) {
       await addOutreachEntry({
-        cwid:       student.cwid,
-        program:    program.toLowerCase(),
-        action:     "email_sent",
-        timestamp:  now,
-        details:    `Email sent to ${toEmail} with accept link`,
+        cwid: student.cwid,
+        program: prog.toLowerCase(),
+        action: "email_sent",
+        timestamp: now,
+        details: `Email attempt ${attempts}/${MAX_EMAIL_ATTEMPTS} sent to ${toEmail}`,
         staff_name: null,
       });
     }
 
-    results.push({ cwid: student.cwid, name: `${student.first_name} ${student.last_name}`, programs, links });
+    results.push({ cwid: student.cwid, name: `${student.first_name} ${student.last_name}`, programs, attempt: attempts, links });
+  }
+
+  // Flag students who hit max attempts for staff phone outreach
+  for (const student of allStudents) {
+    const s = student as unknown as Record<string, unknown>;
+    let needsUpdate = false;
+    for (const prog of ["eops", "care", "calworks"]) {
+      const attempts = (s[`ep_${prog}_email_attempts`] as number) || 0;
+      const clicked = s[`ep_${prog}_email_clicked`] as string | null;
+      const outreach = s[`ep_${prog}_outreach_status`] as string;
+      if (attempts >= MAX_EMAIL_ATTEMPTS && !clicked && outreach !== "needed") {
+        s[`ep_${prog}_outreach_status`] = "needed";
+        needsUpdate = true;
+      }
+    }
+    if (needsUpdate) await upsertStudent(student);
   }
 
   return NextResponse.json({
     sent: results.length,
-    message: `Sent emails to ${results.length} students via SES (${OVERRIDE_TO_EMAIL ? "sandbox: all redirected to " + OVERRIDE_TO_EMAIL : "production mode"})`,
+    message: `Sent emails to ${results.length} students`,
+    schedule: {
+      business_hours: "Mon-Fri 8AM-5PM Pacific",
+      max_attempts: MAX_EMAIL_ATTEMPTS,
+      days_between: DAYS_BETWEEN_EMAILS,
+      stop_after_click: true,
+    },
+    skipped: {
+      already_clicked: skippedAlreadyClicked,
+      max_attempts_reached: skippedMaxAttempts,
+      too_soon: skippedTooSoon,
+    },
     students: results,
   });
 }

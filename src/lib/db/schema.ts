@@ -65,6 +65,12 @@ export interface StudentRecord {
   // Slate field type: DateTime
   ep_last_outreach_date: string | null;
 
+  // ── Email attempt tracking (anti-spam) ──
+  // Slate field type: Number
+  ep_eops_email_attempts:     number;
+  ep_care_email_attempts:     number;
+  ep_calworks_email_attempts: number;
+
   // ── System ──
   ep_last_eligibility_check: string;  // ISO datetime
   created_at:                string;  // ISO datetime
