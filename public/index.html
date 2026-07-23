@@ -34,9 +34,6 @@
   <a href="#" class="view-all">&#128269; VIEW ALL CARDS</a>
 </nav>
 
-<!-- Student context bar: shows which student is being previewed in Admin View -->
-<div class="student-context-bar" id="studentContextBar"></div>
-
 <!-- ===================================================================
      ADMINISTRATOR DASHBOARD — Main body of the website
      =================================================================== -->
@@ -46,11 +43,7 @@
       <div>
         <h1>Administrator Dashboard</h1>
         <div class="sub">Program matching, priority ranking &amp; student records — demonstration data only.</div>
-      </div>
-      <div class="student-picker">
-        <label for="studentSelect">Preview student:</label>
-        <select id="studentSelect"></select>
-      </div>
+      </div>  
     </div>
 
     <!-- Analytics metric cards (Feature 11) -->
@@ -64,6 +57,19 @@
 
     <!-- Priority-ranked student roster (Features 8 & 10) -->
     <div class="admin-table-card">
+
+      <!-- Eligibility tabs -->
+      <div class="roster-tabs" id="rosterTabs" style="display:flex;border-bottom:2px solid #e0e0e0;background:#f7f4ff;padding:0 20px;">
+        <button class="roster-tab active" data-tab="full" id="tabFull">
+          ✅ 100% Eligible
+          <span class="tab-count" id="tabFullCount">0</span>
+        </button>
+        <button class="roster-tab" data-tab="others" id="tabOthers">
+          📧 Others — Action Needed
+          <span class="tab-count" id="tabOthersCount">0</span>
+        </button>
+      </div>
+
       <table class="admin-table" id="rosterTable">
         <thead>
           <tr>

@@ -585,13 +585,6 @@
 }
 .admin-head h1{ font-size:24px; margin:0; color:var(--primary); }
 .admin-head .sub{ color:var(--muted); font-size:14px; margin-top:2px; }
-.student-picker{ display:flex; align-items:center; gap:10px; }
-.student-picker label{ font-size:13px; font-weight:700; color:#444; }
-.student-picker select{
-  padding:9px 12px; font-size:14px;
-  border:1px solid var(--border); border-radius:6px; background:#fff; min-width:240px;
-}
-
 /* Analytics cards */
 .analytics-grid{
   display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
@@ -704,22 +697,147 @@
 }
 .doc-stamp.pending{ border-color:var(--gold-dark); color:var(--gold-dark); }
 
-/* priority pill shown on the student home hero */
-.student-context-bar{
-  max-width:1500px; margin:0 auto; padding:10px 28px 0;
-  display:none; align-items:center; gap:12px; flex-wrap:wrap;
-}
-.student-context-bar.show{ display:flex; }
-.scb-chip{
-  background:#fff; border:1px solid var(--border); border-radius:20px;
-  padding:6px 14px; font-size:13px; font-weight:700; color:var(--primary);
-}
-.scb-chip .sub{ color:var(--muted); font-weight:400; }
-
-
-
 @media (max-width:700px){
   .doc-grid{ grid-template-columns:1fr; }
   .prog-meta{ grid-template-columns:1fr; }
   .qual-toast{ top:70px; }
+}
+
+/* ---- Eligibility tabs above the roster --------------------------------- */
+.roster-tabs{
+  display:flex;
+  gap:0;
+  border-bottom:2px solid var(--border);
+  background:#f7f4ff;
+  padding:0 20px;
+}
+.roster-tab{
+  position:relative;
+  padding:14px 22px 12px;
+  border:none;
+  background:transparent;
+  cursor:pointer;
+  font-size:14px;
+  font-weight:600;
+  color:var(--muted);
+  letter-spacing:.2px;
+  border-bottom:3px solid transparent;
+  margin-bottom:-2px;
+  transition:color .15s, border-color .15s;
+  white-space:nowrap;
+}
+.roster-tab:hover{
+  color:var(--purple);
+  background:#ede8ff;
+}
+.roster-tab.active{
+  color:var(--purple);
+  border-bottom-color:var(--purple);
+  background:#fff;
+}
+.tab-count{
+  display:inline-block;
+  margin-left:8px;
+  background:var(--purple);
+  color:#fff;
+  font-size:11px;
+  font-weight:800;
+  padding:1px 8px;
+  border-radius:999px;
+  vertical-align:middle;
+  min-width:24px;
+  text-align:center;
+}
+.roster-tab:not(.active) .tab-count{
+  background:#bbb;
+}
+
+/* ---- Status symbols in the admin roster table ------------------------- */
+.roster-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-weight: 900;
+  font-size: 18px;
+  line-height: 1;
+}
+.status-accepted { background: #e6f4ea; color: #1e8e3e; border: 2px solid #1e8e3e; }
+.status-declined { background: #fce8e6; color: #c5221f; border: 2px solid #c5221f; }
+.status-pending  { background: #fdf1d8; color: #b06a00; border: 2px solid #f0c040; font-size:16px; }
+.status-none     { background: #f0f0f0; color: #999; border: 2px solid #ccc; }
+
+/* ---- Programs dropdown in admin roster -------------------------------- */
+.prog-dropdown { margin-top: 6px; }
+.prog-dropdown summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--purple);
+  background: #f0eafa;
+  border: 1px solid #c9b8ef;
+  border-radius: 5px;
+  padding: 4px 10px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.prog-dropdown summary::-webkit-details-marker { display: none; }
+.prog-dropdown[open] summary { background: #e3d6f7; border-radius: 5px 5px 0 0; }
+.spl-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid #c9b8ef;
+  border-top: none;
+  border-radius: 0 0 5px 5px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 220px;
+}
+.spl-item { display: flex; flex-direction: column; gap: 3px; }
+.spl-row  { display: flex; align-items: center; gap: 7px; }
+.spl-empty{ font-size:12px; color:var(--muted); padding:4px 0; }
+.spl-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 900;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.spl-accepted     { background: #e6f4ea; color: #1e8e3e; border: 1.5px solid #1e8e3e; }
+.spl-declined     { background: #fce8e6; color: #c5221f; border: 1.5px solid #c5221f; font-size:15px; }
+.spl-pending-img  { background: #fdf1d8; color: #b06a00; border: 1.5px solid #f0c040; }
+.spl-name         { font-size: 12px; font-weight: 600; color: #333; flex: 1; }
+.spl-status       { font-size: 11px; font-style: italic; }
+.spl-label-accepted { color: #1e8e3e; }
+.spl-label-declined { color: #c5221f; }
+.spl-label-pending  { color: #888; }
+.spl-almost-detail {
+  display: flex; flex-direction: column; gap: 3px; padding-left: 27px;
+}
+.spl-almost-badge {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  background: #fdf1d8; color: #b06a00; border-radius: 8px;
+  padding: 1px 6px; text-transform: uppercase; letter-spacing: 0.3px;
+}
+.spl-missing {
+  font-size: 11px; color: #7a4f00; background: #fff8e1;
+  border: 1px solid #f0c040; border-radius: 4px; padding: 2px 7px; line-height: 1.5;
+}
+.spl-email-flag {
+  font-size: 11px; font-weight: 700; color: #0b57d0;
+  background: #e8f0fe; border: 1px solid #aac4f5;
+  border-radius: 4px; padding: 2px 7px; white-space: nowrap;
 }

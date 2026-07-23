@@ -1,4 +1,4 @@
-  // Backend API config — same origin when served via Next.js
+  // Backend API — same origin when served via Next.js
   window.BACKEND_URL = '';
   window.CURRENT_STUDENT_CWID = '@30302410';
 
@@ -124,16 +124,15 @@
         if(!prog) return;
         prog.decision = action === 'accept' ? 'accepted' : 'optedout';
 
-        // Record decision in backend (DynamoDB + SES email)
+        // Record in backend (DynamoDB + send email via SES)
         if(action === 'accept'){
-          fetch(window.BACKEND_URL + '/api/send-email', {
+          fetch(window.BACKEND_URL + '/api/send-emails-batch', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({cwid: window.CURRENT_STUDENT_CWID, program: id})
+            headers: {'Content-Type': 'application/json'}
           }).then(function(r){ return r.json(); }).then(function(data){
-            console.log('[API] Opt-in recorded:', data);
+            console.log('[API] Opt-in recorded, emails sent:', data);
           }).catch(function(err){
-            console.log('[API] Backend unavailable, recorded locally:', err.message);
+            console.log('[API] Backend not available:', err.message);
           });
         }
 

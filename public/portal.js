@@ -83,17 +83,6 @@
     var p = document.querySelector("#eligModal .modal-head p");
     if (h2) h2.textContent = "Congratulations, " + firstName(s) + "!";
     if (p) p.textContent = "Based on the information Golden West College already has on file, here's where you stand.";
-
-    // Context bar (shown while Admin View is active)
-    var bar = $("studentContextBar");
-    if (bar) {
-      bar.innerHTML =
-        '<span class="scb-chip">Previewing: ' + esc(s.name) + '</span>' +
-        '<span class="scb-chip">Priority Level ' + s.priority.level +
-          ' <span class="sub">(rank #' + s.priority.rank + ' of ' + T.STUDENTS.length + ')</span></span>' +
-        '<span class="scb-chip">SAI ' + s.fafsa.sai + '</span>' +
-        '<span class="scb-chip">' + m.qualified.length + ' qualified programs</span>';
-    }
   }
 
   /* ======================================================================
@@ -266,7 +255,7 @@
     download(fname, txt);
 
     // keep analytics live if admin dashboard is open
-    if (state.adminOpen) { renderAnalytics(); }
+    if (state.adminOpen) { renderAnalytics(); renderRoster(); }
   }
 
   function decisionFileText(s, prog, decision) {
@@ -328,39 +317,18 @@
   /* ======================================================================
      FEATURE 4 + 8 + 11 — ADMINISTRATOR DASHBOARD
      ====================================================================== */
-  function buildStudentSelect() {
-    var sel = $("studentSelect");
-    if (!sel) return;
-    var ranked = T.rankStudents(T.STUDENTS.slice());
-    // options in priority order for convenience
-    sel.innerHTML = ranked.map(function (r) {
-      var s = r.student;
-      return '<option value="' + s.id + '">' + esc(s.name) +
-             "  —  " + esc(s.major) + "  (P" + s.priority.level + ")</option>";
-    }).join("");
-    sel.value = state.currentId;
-    sel.addEventListener("change", function () {
-      state.currentId = sel.value;
-      renderStudentHome();
-      if ($("eligModal").classList.contains("open")) renderMatchModal();
-      renderRoster();      // re-highlight selected row
-    });
-  }
-
   function toggleAdmin() {
-    // Admin panel is now always visible as the main body.
-    // Toggle just controls whether student context bar shows.
     state.adminOpen = !state.adminOpen;
     var btn = $("adminToggle");
-    var bar = $("studentContextBar");
     if (state.adminOpen) {
       btn.classList.add("active");
       btn.innerHTML = "&#128100; Exit Admin";
-      bar.classList.add("show");
+      rosterTab = "full";
+      initRosterTabs();
+      renderRoster();
     } else {
       btn.classList.remove("active");
       btn.innerHTML = "&#128100; Admin View";
-      bar.classList.remove("show");
     }
   }
 
@@ -455,12 +423,133 @@
     });
   }
 
+  /* ---- Program dropdown under student name in roster ------------------- */
+  function studentProgramListHtml(s) {
+    var programs = s.matches.qualified.concat(s.matches.almost);
+    var count = programs.length;
+
+    var items = programs.map(function (p) {
+      var dec = s.decisions[p.id];
+      var iconHtml, labelClass, statusText;
+
+      if (dec === "accepted") {
+        iconHtml = '<span class="spl-icon spl-accepted">&#10003;</span>';
+        labelClass = "spl-label-accepted";
+        statusText = "Accepted";
+      } else if (dec === "declined") {
+        iconHtml = '<span class="spl-icon spl-declined">&times;</span>';
+        labelClass = "spl-label-declined";
+        statusText = "Declined";
+      } else if (dec === "maybe") {
+        iconHtml = '<span class="spl-icon spl-pending-img">&#9203;</span>';
+        labelClass = "spl-label-pending";
+        statusText = "Maybe Later";
+      } else {
+        iconHtml = '<span class="spl-icon spl-pending-img">&#9203;</span>';
+        labelClass = "spl-label-pending";
+        statusText = "Pending";
+      }
+
+      var almostHtml = "";
+      if (p.status === "almost") {
+        var needsEmail = !dec || dec === "maybe";
+        almostHtml =
+          '<div class="spl-almost-detail">' +
+            '<span class="spl-almost-badge">Almost</span>' +
+            (p.missing ? '<span class="spl-missing">&#9888; Missing: ' + esc(p.missing) + '</span>' : '') +
+            (needsEmail ? '<span class="spl-email-flag">&#9993; Follow-up email needed</span>' : '') +
+          '</div>';
+      }
+
+      return '<li class="spl-item">' +
+        '<div class="spl-row">' +
+          iconHtml +
+          '<span class="spl-name ' + labelClass + '">' + esc(p.shortName) + '</span>' +
+          '<span class="spl-status ' + labelClass + '">' + statusText + '</span>' +
+        '</div>' +
+        almostHtml +
+      '</li>';
+    }).join("");
+
+    if (!count) {
+      return '<div class="spl-empty">No matched programs</div>';
+    }
+
+    return '<details class="prog-dropdown">' +
+      '<summary class="prog-dropdown-btn">Programs (' + count + ') &#9660;</summary>' +
+      '<ul class="spl-list">' + items + '</ul>' +
+    '</details>';
+  }
+
+  /* ---- Status symbol helper for the roster ----------------------------- */
+  function studentStatusHtml(s) {
+    var decisions = Object.keys(s.decisions).map(function (k) { return s.decisions[k]; });
+    var hasAccepted = decisions.some(function (d) { return d === "accepted"; });
+    var hasDeclined = decisions.some(function (d) { return d === "declined"; });
+    var hasQualified = s.matches.qualified.length > 0 || s.matches.almost.length > 0;
+
+    if (hasAccepted) {
+      return '<span class="roster-status status-accepted" title="Accepted">&#10003;</span>';
+    }
+    if (hasDeclined && !hasAccepted) {
+      return '<span class="roster-status status-declined" title="Declined">&times;</span>';
+    }
+    if (hasQualified) {
+      return '<span class="roster-status status-pending" title="Pending response">&#9203;</span>';
+    }
+    return '<span class="roster-status status-none" title="No programs matched">&mdash;</span>';
+  }
+
+  /* ---- Tab state for roster -------------------------------------------- */
+  var rosterTab = "full";
+  var rosterTabsInited = false;
+
+  function initRosterTabs() {
+    if (rosterTabsInited) {
+      // Just sync active state without re-adding listeners
+      document.querySelectorAll(".roster-tab").forEach(function (btn) {
+        btn.classList.toggle("active", btn.getAttribute("data-tab") === rosterTab);
+      });
+      return;
+    }
+    rosterTabsInited = true;
+    var tabs = document.querySelectorAll(".roster-tab");
+    tabs.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        rosterTab = btn.getAttribute("data-tab");
+        tabs.forEach(function (t) { t.classList.remove("active"); });
+        btn.classList.add("active");
+        renderRoster();
+      });
+    });
+  }
+
+  /* Returns true if the student is 100% eligible:
+     qualified for at least one program AND has zero "almost" matches. */
+  function isFullyEligible(s) {
+    return s.matches.qualified.length > 0 && s.matches.almost.length === 0;
+  }
+
   /* ---- Feature 8: priority-ranked roster ------------------------------- */
   function renderRoster() {
     var ranked = T.rankStudents(T.STUDENTS.slice());
+
+    // Split into the two tab groups
+    var fullGroup   = ranked.filter(function (r) { return isFullyEligible(r.student); });
+    var othersGroup = ranked.filter(function (r) { return !isFullyEligible(r.student); });
+
+    // Update tab counts
+    var cFull   = $("tabFullCount");
+    var cOthers = $("tabOthersCount");
+    if (cFull)   cFull.textContent   = fullGroup.length;
+    if (cOthers) cOthers.textContent = othersGroup.length;
+
+    // Pick the list to render based on active tab
+    var list = rosterTab === "full" ? fullGroup : othersGroup;
+
     var body = $("rosterBody");
     if (!body) return;
-    body.innerHTML = ranked.map(function (r) {
+    body.innerHTML = list.map(function (r) {
       var s = r.student;
       var chips = r.reasons.slice(0, 4).map(function (x) {
         return '<span class="p-chip">' + esc(x) + "</span>";
@@ -469,7 +558,7 @@
       var sel = s.id === state.currentId ? ' style="background:#f3ecff;"' : "";
       return "<tr" + sel + ">" +
         '<td><span class="plevel l' + r.level + '">P' + r.level + "</span> #" + (ranked.indexOf(r) + 1) + "</td>" +
-        "<td><b>" + esc(s.name) + "</b></td>" +
+        "<td><b>" + esc(s.name) + "</b>" + studentProgramListHtml(s) + "</td>" +
         "<td>" + esc(s.banner.studentId) + "</td>" +
         "<td>" + esc(s.major) + "</td>" +
         "<td>" + s.fafsa.sai + "</td>" +
@@ -485,6 +574,9 @@
 
     // wire preview + document buttons (delegation)
     body.onclick = function (e) {
+      // Let <details>/<summary> toggle natively — don't intercept it
+      if (e.target.closest("details")) return;
+
       var b = e.target.closest("button");
       if (b && b.hasAttribute("data-doc")) {
         openDoc(b.getAttribute("data-doc"), b.getAttribute("data-sid"));
@@ -494,11 +586,9 @@
       if (tr) {
         var name = tr.querySelector("td:nth-child(2) b");
         if (name) {
-          // find student by name and preview
           var match = T.STUDENTS.filter(function (s) { return s.name === name.textContent; })[0];
           if (match) {
             state.currentId = match.id;
-            $("studentSelect").value = match.id;
             renderStudentHome();
             renderRoster();
           }
@@ -645,10 +735,10 @@
     // Admin dashboard — now the main body, render immediately
     var adminBtn = $("adminToggle");
     if (adminBtn) adminBtn.addEventListener("click", toggleAdmin);
-    buildStudentSelect();
     renderStudentHome();
     renderAnalytics();
     renderProgramChart();
+    initRosterTabs();
     renderRoster();
 
     // First-load notification toast
