@@ -71,7 +71,6 @@
 
     // Program Matches summary card counts
     if ($("qualifiedCount")) $("qualifiedCount").textContent = m.qualified.length;
-    if ($("almostCount")) $("almostCount").textContent = m.almost.length;
     if ($("notCount")) $("notCount").textContent = m.not.length;
 
     // Header avatar initial
@@ -172,16 +171,9 @@
     if (!body) return;
 
     var html = "";
-    html += '<div class="modal-section-title qualified">You currently qualify for <span class="count-pill">' + m.qualified.length + "</span></div>";
+    html += '<div class="modal-section-title qualified">You qualify for <span class="count-pill">' + m.qualified.length + "</span></div>";
     if (m.qualified.length) m.qualified.forEach(function (p) { html += progCardHtml(p); });
     else html += '<div class="prog-reason">No current qualifications on file.</div>';
-
-    html += '<div class="modal-section-title almost">You almost qualify for <span class="count-pill">' + m.almost.length + "</span></div>";
-    if (m.almost.length) m.almost.forEach(function (p) { html += progCardHtml(p); });
-    else html += '<div class="prog-reason">Nothing pending right now — check back after your next document upload.</div>';
-
-    html += '<div class="modal-section-title not">Not yet eligible <span class="count-pill">' + m.not.length + "</span></div>";
-    m.not.forEach(function (p) { html += progCardHtml(p); });
 
     body.innerHTML = html;
   }
@@ -425,7 +417,7 @@
 
   /* ---- Program dropdown under student name in roster ------------------- */
   function studentProgramListHtml(s) {
-    var programs = s.matches.qualified.concat(s.matches.almost);
+    var programs = s.matches.qualified;
     var count = programs.length;
 
     var items = programs.map(function (p) {
@@ -451,15 +443,6 @@
       }
 
       var almostHtml = "";
-      if (p.status === "almost") {
-        var needsEmail = !dec || dec === "maybe";
-        almostHtml =
-          '<div class="spl-almost-detail">' +
-            '<span class="spl-almost-badge">Almost</span>' +
-            (p.missing ? '<span class="spl-missing">&#9888; Missing: ' + esc(p.missing) + '</span>' : '') +
-            (needsEmail ? '<span class="spl-email-flag">&#9993; Follow-up email needed</span>' : '') +
-          '</div>';
-      }
 
       return '<li class="spl-item">' +
         '<div class="spl-row">' +
