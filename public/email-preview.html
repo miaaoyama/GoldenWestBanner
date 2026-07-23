@@ -8,13 +8,19 @@ body { background: #1a1a2e; padding: 40px 20px; font-family: 'Segoe UI', sans-se
 .controls { margin-bottom: 20px; text-align: center; }
 .send-btn { background: #0F603D; color: #fff; border: none; padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; transition: transform 0.15s; }
 .send-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-.send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .student-info { color: #9ca3af; font-size: 12px; margin-top: 8px; }
-.inbox-frame { max-width: 600px; width: 100%; background: #fff; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); overflow: hidden; }
+.inbox-frame { max-width: 600px; width: 100%; background: #fff; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); overflow: hidden; position: relative; }
 .inbox-header { background: #f9fafb; padding: 12px 20px; border-bottom: 1px solid #e5e7eb; font-size: 13px; color: #6b7280; }
 .inbox-header strong { color: #111; }
-.email-body { padding: 0; }
 .counter { color: #6b7280; font-size: 11px; margin-top: 12px; }
+/* Confirmation overlay */
+.confirm-overlay { position: absolute; inset: 0; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center; z-index: 10; animation: fadeIn 0.3s ease; }
+.confirm-overlay h2 { color: #0F603D; font-size: 1.4rem; margin: 12px 0 8px; }
+.confirm-overlay p { color: #374151; font-size: 14px; line-height: 1.6; }
+.confirm-overlay .sub { color: #9ca3af; font-size: 12px; margin-top: 12px; }
+.optout-overlay h2 { color: #6b7280; }
+canvas.confetti { position: absolute; inset: 0; pointer-events: none; z-index: 11; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>
 </head>
 <body>
@@ -33,16 +39,16 @@ body { background: #1a1a2e; padding: 40px 20px; font-family: 'Segoe UI', sans-se
 <script>
 var students = [];
 var currentIndex = 0;
+var currentStudent = null;
 var BASE_URL = window.location.origin;
 
-// Fetch students from API
 fetch(BASE_URL + "/api/tracking")
   .then(function(r) { return r.json(); })
   .then(function(data) {
     students = data.tracking.filter(function(t) {
       return Object.values(t.programs).some(function(p) { return p.eligibility === "confirmed" || p.eligibility === "conditional"; });
     });
-    document.getElementById("counter").textContent = students.length + " students loaded from database";
+    document.getElementById("counter").textContent = students.length + " students loaded";
   })
   .catch(function() {
     document.getElementById("counter").textContent = "Could not load students from API";
@@ -50,33 +56,30 @@ fetch(BASE_URL + "/api/tracking")
 
 function nextStudent() {
   if (students.length === 0) return;
-  var student = students[currentIndex % students.length];
+  currentStudent = students[currentIndex % students.length];
   currentIndex++;
 
-  var firstName = student.name.split(" ")[0];
+  var firstName = currentStudent.name.split(" ")[0];
   var confirmed = [];
   var conditional = [];
 
-  Object.keys(student.programs).forEach(function(prog) {
-    var p = student.programs[prog];
+  Object.keys(currentStudent.programs).forEach(function(prog) {
+    var p = currentStudent.programs[prog];
     if (p.eligibility === "confirmed") confirmed.push(p);
     if (p.eligibility === "conditional") conditional.push(p);
   });
 
-  // Build email header
   var emailAddr = firstName.toLowerCase() + "@student.goldenwestcollege.edu";
   document.getElementById("inboxHeader").innerHTML =
     "<strong>From:</strong> Golden West College &lt;noreply@goldenwestcollege.edu&gt;<br>" +
-    "<strong>To:</strong> " + student.name + " &lt;" + emailAddr + "&gt;<br>" +
+    "<strong>To:</strong> " + currentStudent.name + " &lt;" + emailAddr + "&gt;<br>" +
     "<strong>Subject:</strong> " + firstName + ", you qualify for " + confirmed.map(function(p){return p.displayName;}).join(" & ") + " at GWC!";
 
-  // Build program table rows
   var rows = "";
   confirmed.forEach(function(p) {
-    rows += '<tr><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;">' + p.displayName + '</td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;"><span style="background:#0F603D;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;">100% Qualified</span></td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;"><a href="' + BASE_URL + '/api/accept?token=demo-' + Date.now() + '" style="background:#0F603D;color:#fff;padding:6px 14px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:600;">Accept →</a> <a href="#" style="color:#9ca3af;font-size:11px;margin-left:8px;text-decoration:underline;">Opt out</a></td></tr>';
+    rows += '<tr><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;">' + p.displayName + '</td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;"><span style="background:#0F603D;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;">100% Qualified</span></td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;"><button onclick="handleAccept(\'' + currentStudent.name + '\')" style="background:#0F603D;color:#fff;padding:6px 14px;border-radius:6px;border:none;font-size:13px;font-weight:600;cursor:pointer;">Accept →</button> <button onclick="handleOptout(\'' + currentStudent.name + '\')" style="background:none;border:none;color:#9ca3af;font-size:11px;margin-left:8px;text-decoration:underline;cursor:pointer;">Opt out</button></td></tr>';
   });
 
-  // Conditional section
   var conditionalHtml = "";
   if (conditional.length > 0) {
     conditionalHtml = '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;margin:16px 0;">' +
@@ -101,9 +104,75 @@ function nextStudent() {
     '</div>';
 
   document.getElementById("emailFrame").style.display = "block";
-  document.getElementById("studentInfo").textContent = "Showing email for: " + student.name + " (" + confirmed.length + " confirmed, " + conditional.length + " conditional)";
+  document.getElementById("studentInfo").textContent = "Showing email for: " + currentStudent.name;
   document.getElementById("sendBtn").textContent = "Send Email to Next Student →";
   document.getElementById("counter").textContent = currentIndex + " of " + students.length + " students";
+}
+
+function handleAccept(name) {
+  var firstName = name.split(" ")[0];
+  // Call backend to record acceptance
+  fetch(BASE_URL + "/api/sms-accept", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({cwid: currentStudent.cwid, programs: Object.keys(currentStudent.programs).filter(function(k){return currentStudent.programs[k].eligibility === "confirmed";})})
+  }).catch(function(){});
+
+  // Show confirmation overlay with confetti
+  var frame = document.getElementById("emailFrame");
+  var overlay = document.createElement("div");
+  overlay.className = "confirm-overlay";
+  overlay.innerHTML = '<span style="font-size:2.5rem;">🎉</span><h2>' + firstName + ', you\'re confirmed!</h2><p>A confirmation email has been sent to your GWC student email.<br>The program office will be in touch with next steps and orientation details.</p><p class="sub">This message will close in a few seconds...</p>';
+  frame.appendChild(overlay);
+
+  // Confetti
+  var canvas = document.createElement("canvas");
+  canvas.className = "confetti";
+  canvas.width = frame.offsetWidth;
+  canvas.height = frame.offsetHeight;
+  frame.appendChild(canvas);
+  var ctx = canvas.getContext("2d");
+  var colors = ["#0F603D","#FFC522","#BADB3E","#1A9959","#f472b6","#60a5fa"];
+  var pieces = [];
+  for (var i = 0; i < 100; i++) {
+    pieces.push({x:Math.random()*canvas.width, y:Math.random()*-150, w:5+Math.random()*6, h:3+Math.random()*4, color:colors[Math.floor(Math.random()*colors.length)], vx:(Math.random()-0.5)*5, vy:2+Math.random()*4, angle:Math.random()*Math.PI*2, spin:(Math.random()-0.5)*0.2, opacity:1, gravity:0.1});
+  }
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces = pieces.filter(function(p){return p.opacity > 0.02;});
+    pieces.forEach(function(p) {
+      p.vy+=p.gravity;p.x+=p.vx;p.y+=p.vy;p.angle+=p.spin;p.opacity*=0.99;
+      ctx.save();ctx.globalAlpha=p.opacity;ctx.translate(p.x,p.y);ctx.rotate(p.angle);
+      ctx.fillStyle=p.color;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);ctx.restore();
+    });
+    if (pieces.length > 0) requestAnimationFrame(draw);
+  }
+  draw();
+
+  // Auto-dismiss after 4 seconds
+  setTimeout(function() {
+    overlay.remove();
+    canvas.remove();
+  }, 4000);
+}
+
+function handleOptout(name) {
+  var firstName = name.split(" ")[0];
+  // Call backend to record opt-out
+  fetch(BASE_URL + "/api/sms-optout", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({cwid: currentStudent.cwid, programs: Object.keys(currentStudent.programs).filter(function(k){return currentStudent.programs[k].eligibility === "confirmed";})})
+  }).catch(function(){});
+
+  // Show opt-out overlay
+  var frame = document.getElementById("emailFrame");
+  var overlay = document.createElement("div");
+  overlay.className = "confirm-overlay optout-overlay";
+  overlay.innerHTML = '<span style="font-size:2rem;">✓</span><h2>' + firstName + ', you\'ve opted out</h2><p>You won\'t receive further notifications about these programs.<br>If you change your mind, visit Student Services.</p><p class="sub">This message will close in a few seconds...</p>';
+  frame.appendChild(overlay);
+
+  setTimeout(function() { overlay.remove(); }, 3000);
 }
 </script>
 </body>
