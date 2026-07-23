@@ -32,9 +32,12 @@ export async function GET() {
     if (hasConfirmed) status = "confirmed";
     else if (hasConditional) status = "conditional";
 
-    // Outreach only needed if student is ONLY conditional (no confirmed programs)
+    // Outreach needed if:
+    // 1. Student is confirmed but hasn't been emailed yet, OR
+    // 2. Student is only conditional (no confirmed programs)
     let outreachStatus = "not_needed";
-    if (!hasConfirmed && hasConditional) outreachStatus = "needed";
+    if (hasConfirmed && !emailSent) outreachStatus = "needed";
+    else if (!hasConfirmed && hasConditional) outreachStatus = "needed";
 
     const acceptedDate = s.ep_eops_accepted_date || s.ep_care_accepted_date || s.ep_calworks_accepted_date;
 
@@ -45,6 +48,11 @@ export async function GET() {
 
   return NextResponse.json({
     students: allMapped,
-    stats: { total: all.length, needs_outreach: outreach.length, conditional: conditional.length, accepted_last_30: accepted.length },
+    stats: {
+      total: all.length,
+      needs_outreach: allMapped.filter(s => s.outreach_status === "needed").length,
+      conditional: allMapped.filter(s => s.status === "conditional").length,
+      accepted_last_30: accepted.length,
+    },
   });
 }
