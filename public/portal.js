@@ -1077,11 +1077,11 @@
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function() {
-      setTimeout(fetchAndApplyTracking, 500);
-      setInterval(fetchAndApplyTracking, 15000);
+      setTimeout(fetchAndApplyTracking, 300);
+      setInterval(fetchAndApplyTracking, 5000);
     });
   } else {
-    setTimeout(fetchAndApplyTracking, 500);
-    setInterval(fetchAndApplyTracking, 15000);
+    setTimeout(fetchAndApplyTracking, 300);
+    setInterval(fetchAndApplyTracking, 5000);
   }
 })();
