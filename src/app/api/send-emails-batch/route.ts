@@ -66,14 +66,26 @@ export async function POST() {
 
     if (programs.length === 0) continue;
 
+    // Create opt-out tokens for each program too
+    const optoutLinks: Record<string, string> = {};
+    for (const p of programs) {
+      const key = p.toLowerCase().replace("calworks", "calworks");
+      const optoutToken = await createAcceptToken(student.cwid, key + "_optout");
+      optoutLinks[key] = `${BASE_URL}/api/optout?token=${optoutToken.token}`;
+    }
+
     // Build email HTML
     const programList = programs.map((p) => {
       const key = p.toLowerCase().replace("calworks", "calworks");
       const link = links[key] || links[p.toLowerCase()];
+      const optout = optoutLinks[key];
       const status = (student as unknown as Record<string, unknown>)[`ep_${key}_status`] as string;
       const statusLabel = status === "confirmed" ? "100% Qualified" : "Conditionally Qualified";
-      return `<tr><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;">${p}</td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${statusLabel}</td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;"><a href="${link}" style="background:#0F603D;color:#fff;padding:6px 14px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:600;">Accept →</a></td></tr>`;
+      return `<tr><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;">${p}</td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${statusLabel}</td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;"><a href="${link}" style="background:#0F603D;color:#fff;padding:6px 14px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:600;">Accept →</a> <a href="${optout}" style="color:#9ca3af;font-size:11px;margin-left:8px;text-decoration:underline;">Opt out</a></td></tr>`;
     }).join("");
+
+    // General opt-out link (uses first program's token)
+    const firstOptout = optoutLinks[programs[0].toLowerCase().replace("calworks", "calworks")];
 
     const emailHtml = `
       <div style="font-family:'Segoe UI',sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
@@ -83,8 +95,8 @@ export async function POST() {
           <p style="font-size:15px;color:#374151;margin-top:12px;">Based on your enrollment records, you qualify for the following support programs at GWC:</p>
           <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;"><thead><tr style="background:#f2f8f5;"><th style="padding:8px 12px;text-align:left;">Program</th><th style="padding:8px 12px;text-align:left;">Status</th><th style="padding:8px 12px;text-align:left;">Action</th></tr></thead><tbody>${programList}</tbody></table>
           ${student.ep_pending_items ? `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;margin:16px 0;"><p style="font-size:12px;font-weight:700;color:#92400e;text-transform:uppercase;margin:0 0 4px;">Documents needed:</p><p style="font-size:13px;color:#374151;margin:0;">${student.ep_pending_items}</p></div>` : ""}
-          <p style="font-size:13px;color:#6b7280;margin-top:20px;">Click "Accept" above to confirm your spot. Each link is personal to you — no application form needed.</p>
-          <p style="font-size:11px;color:#9ca3af;margin-top:20px;border-top:1px solid #e5e7eb;padding-top:12px;">Golden West College | 15744 Goldenwest St, Huntington Beach, CA 92647<br>If you no longer wish to receive these notifications, contact Student Services.</p>
+          <p style="font-size:13px;color:#6b7280;margin-top:20px;">Click "Accept" to confirm your spot. Each link is personal to you — no application needed.</p>
+          <p style="font-size:11px;color:#9ca3af;margin-top:20px;border-top:1px solid #e5e7eb;padding-top:12px;">Golden West College | 15744 Goldenwest St, Huntington Beach, CA 92647<br><a href="${firstOptout}" style="color:#9ca3af;">Opt out of all program notifications</a></p>
         </div>
       </div>`;
 
