@@ -137,20 +137,41 @@ fetch(API + "/api/tracking")
 
 function sendToNextStudent() {
   if (students.length === 0) return;
-  currentStudent = students[currentIndex % students.length];
-  currentIndex++;
+  
+  // Re-fetch tracking to get latest status (in case they accepted via email)
+  fetch(API + "/api/tracking")
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      students = data.tracking.filter(function(t) {
+        return Object.values(t.programs).some(function(p) { return p.eligibility === "confirmed"; });
+      });
+      if (students.length === 0) return;
+      currentStudent = students[currentIndex % students.length];
+      currentIndex++;
+      renderSms();
+    })
+    .catch(function() { 
+      // Fallback to cached data
+      currentStudent = students[currentIndex % students.length];
+      currentIndex++;
+      renderSms();
+    });
+}
 
+function renderSms() {
   document.getElementById("messages").innerHTML = "";
-  document.querySelector(".empty-state") && (document.querySelector(".empty-state").style.display = "none");
 
   var firstName = currentStudent.name.split(" ")[0];
   var confirmed = Object.entries(currentStudent.programs).filter(function(e){return e[1].eligibility==="confirmed";}).map(function(e){return e[1].displayName;});
   var conditional = Object.entries(currentStudent.programs).filter(function(e){return e[1].eligibility==="conditional";}).map(function(e){return e[1].displayName;});
   var alreadyAccepted = Object.values(currentStudent.programs).some(function(p){return p.status==="opted_in";});
+  var alreadyOptedOut = Object.values(currentStudent.programs).some(function(p){return p.status==="opted_out";});
 
   var body;
   if (alreadyAccepted) {
     body = "[Golden West College]\n\nHi " + firstName + "! You have already been accepted into: " + confirmed.join(", ") + ".\n\nThank you! Your counselor will be in touch with next steps.";
+  } else if (alreadyOptedOut) {
+    body = "[Golden West College]\n\nHi " + firstName + ", you previously opted out of program notifications.\n\nIf you've changed your mind, visit Student Services or call (714) 892-7711 ext. 55327.";
   } else {
     body = "[Golden West College]\n\nCongratulations " + firstName + "! You are 100% eligible for:\n• " + confirmed.join("\n• ") + "\n\nReply Y to opt in or N to opt out.";
     if (conditional.length > 0) {
