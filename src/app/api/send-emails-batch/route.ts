@@ -15,7 +15,7 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const ses = new SESv2Client({ region: process.env.AWS_REGION || "us-west-2" });
+const ses = new SESv2Client({ region: process.env.APP_AWS_REGION || process.env.AWS_REGION || "us-west-2" });
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 const FROM_EMAIL = process.env.SES_FROM_EMAIL || "dankim2022@gmail.com";
 

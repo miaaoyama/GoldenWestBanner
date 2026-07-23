@@ -28,7 +28,11 @@ import {
 } from "./schema";
 
 // ── Client setup ──────────────────────────────────────────────────────────
-const client = new DynamoDBClient({ region: process.env.AWS_REGION || "us-west-2" });
+// In Amplify SSR: credentials come from the execution role automatically.
+// Locally: credentials come from env vars or SSO profile.
+const client = new DynamoDBClient({
+  region: process.env.APP_AWS_REGION || process.env.AWS_REGION || "us-west-2",
+});
 const docClient = DynamoDBDocumentClient.from(client, {
   marshallOptions: { removeUndefinedValues: true },
 });
