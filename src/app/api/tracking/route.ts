@@ -51,5 +51,11 @@ export async function GET() {
     };
   });
 
-  return NextResponse.json({ tracking });
+  return NextResponse.json({ tracking }, {
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
 }
