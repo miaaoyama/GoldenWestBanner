@@ -525,9 +525,9 @@
   }
 
   /* Returns true if the student is 100% eligible:
-     qualified for at least one program AND has zero "almost" matches. */
+     qualified for at least one program (regardless of "almost" matches). */
   function isFullyEligible(s) {
-    return s.matches.qualified.length > 0 && s.matches.almost.length === 0;
+    return s.matches.qualified.length > 0;
   }
 
   /* ---- Feature 8: priority-ranked roster ------------------------------- */
