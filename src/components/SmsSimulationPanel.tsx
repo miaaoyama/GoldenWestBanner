@@ -31,19 +31,25 @@ export default function SmsSimulationPanel() {
       .then(data => {
         const mapped: MockStudent[] = data.tracking
           .filter((t: any) => {
-            // Only include students who have at least one confirmed/pending program
+            // Only include students who have at least one confirmed program
             return Object.values(t.programs).some(
-              (p: any) => p.status === "pending" || p.status === "not_sent"
+              (p: any) => p.eligibility === "confirmed"
             );
           })
           .map((t: any) => {
-            const programs = Object.entries(t.programs)
-              .filter(([_, p]: [string, any]) => p.status !== "not_eligible")
-              .map(([name]) => name.toUpperCase());
+            // Confirmed programs (can opt in via SMS)
+            const confirmedProgs = Object.entries(t.programs)
+              .filter(([_, p]: [string, any]) => p.eligibility === "confirmed")
+              .map(([_, p]: [string, any]) => p.displayName);
+            // Conditional programs (need docs — mentioned but can't opt in)
+            const conditionalProgs = Object.entries(t.programs)
+              .filter(([_, p]: [string, any]) => p.eligibility === "conditional")
+              .map(([_, p]: [string, any]) => ({ name: p.displayName, missing: p.missingDocs }));
             return {
               name: t.name,
               phone: "(714) " + Math.floor(100 + Math.random() * 900) + "-" + Math.floor(1000 + Math.random() * 9000),
-              programs,
+              programs: confirmedProgs,
+              conditionalPrograms: conditionalProgs,
               tier: "Tier 1",
               gpa: 0,
               major: "",
@@ -66,8 +72,12 @@ export default function SmsSimulationPanel() {
     setStudentIndex(prev => prev + 1);
 
     setTimeout(() => {
-      const programList = student.programs.join(" & ");
-      const smsBody = `[Golden West College — Official Notice]\n\nCongratulations ${student.name.split(" ")[0]}! Based on your application, you are eligible for the ${programList} program${student.programs.length > 1 ? "s" : ""}.\n\nReply Y to opt in or N to opt out.\n\nQuestions? Contact the EOPS office at (714) 892-7711 ext. 55327 or visit goldenwestcollege.edu/eops`;
+      const programList = student.programs.join(", ");
+      const conditionalText = student.conditionalPrograms && student.conditionalPrograms.length > 0
+        ? `\n\nYou may also qualify for ${student.conditionalPrograms.map((p: any) => p.name).join(", ")} once we receive: ${student.conditionalPrograms.map((p: any) => p.missing).join("; ")}`
+        : "";
+
+      const smsBody = `[Golden West College]\n\nCongratulations ${student.name.split(" ")[0]}! You are 100% eligible for: ${programList}.\n\nReply Y to opt in or N to opt out.${conditionalText}\n\nQuestions? (714) 892-7711 ext. 55327`;
 
       const newMessage: SmsMessage = {
         id: crypto.randomUUID(),
