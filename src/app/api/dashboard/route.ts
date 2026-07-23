@@ -24,12 +24,17 @@ export async function GET() {
     const lastClickDays = emailSent && !clicked ? daysSince : null;
     const pendingItems = s.ep_pending_items ? s.ep_pending_items.split("; ").filter(Boolean) : [];
 
-    let status = "not_eligible";
-    if (s.ep_eops_status === "confirmed" || s.ep_care_status === "confirmed" || s.ep_calworks_status === "confirmed") status = "confirmed";
-    else if (s.ep_eops_status === "conditional" || s.ep_care_status === "conditional" || s.ep_calworks_status === "conditional") status = "conditional";
+    // A student is "confirmed" if they're 100% for ANY program
+    const hasConfirmed = s.ep_eops_status === "confirmed" || s.ep_care_status === "confirmed" || s.ep_calworks_status === "confirmed";
+    const hasConditional = s.ep_eops_status === "conditional" || s.ep_care_status === "conditional" || s.ep_calworks_status === "conditional";
 
+    let status = "not_eligible";
+    if (hasConfirmed) status = "confirmed";
+    else if (hasConditional) status = "conditional";
+
+    // Outreach only needed if student is ONLY conditional (no confirmed programs)
     let outreachStatus = "not_needed";
-    if (s.ep_eops_outreach_status === "needed" || s.ep_care_outreach_status === "needed" || s.ep_calworks_outreach_status === "needed") outreachStatus = "needed";
+    if (!hasConfirmed && hasConditional) outreachStatus = "needed";
 
     const acceptedDate = s.ep_eops_accepted_date || s.ep_care_accepted_date || s.ep_calworks_accepted_date;
 
