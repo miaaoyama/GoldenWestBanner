@@ -1,142 +1,50 @@
 # GoldenWestBanner
-### EOPS Eligibility Notification System — Golden West College
+### Automated Student Eligibility Pipeline — Golden West College
 
-A Next.js web application that automatically shows a personalised notification banner to students who qualify for the **Extended Opportunity Programs and Services (EOPS)** program at Golden West College.
+A proactive notification system that matches students to campus support programs (EOPS, CARE, CalWORKs, and more) based on their enrollment data, sends personalized emails with trackable accept/opt-out links, and provides staff with a real-time outreach dashboard.
 
 ---
 
 ## What It Does
 
-When a student loads the portal page, the system silently checks their academic and financial profile against the official EOPS eligibility criteria. If they qualify, a floating notification card slides in from the top of the screen with:
-
-- A congratulations message addressed to the student by name
-- A **"more information"** dropdown listing the eligibility requirements they met
-- An **"Accept now"** button that takes them directly to the GWC EOPS application page
-- An **"Opt-out"** button to dismiss the banner for the rest of their session
-- Confetti animation to make the moment feel celebratory
-
-If the student does not qualify, nothing is shown — no error, no message, the page loads normally.
+1. **Checks eligibility** — rules engine evaluates each student against program criteria
+2. **Sends personalized emails** — via AWS SES with Accept and Opt-out links
+3. **Tracks responses** — records who clicked, who opted in/out, who hasn't responded
+4. **Alerts staff** — shows time-based urgency (24h yellow warning, 48h red alert)
+5. **Exports to Slate** — CSV export formatted for direct import into Technolutions Slate CRM
 
 ---
 
-## Why This Approach
+## Architecture
 
-### No AI agents or external services
-The eligibility check is a pure rules-based engine written in TypeScript. It runs entirely inside the Next.js server — no calls to Bedrock, no Lambda, no third-party APIs. This means:
+```
+students.js (UI rules engine)  →  DynamoDB (tracking/actions)  →  Portal UI (dashboard)
+                                        ↕
+                                   AWS SES (emails)
+                                        ↕
+                                   Phone mockup (SMS simulation)
+```
 
-- **Fast** — the check adds zero latency, it runs in memory
-- **Free to operate** — no per-request AI costs
-- **Predictable** — the same student profile always produces the same result
-- **Auditable** — every decision can be traced back to a specific rule
-
-### Why rules-based and not AI?
-EOPS eligibility is defined by California Title 5, Section 56220. The criteria are fixed, publicly documented, and binary (you either meet them or you don't). Using an AI model to answer a question that has a deterministic legal answer would add cost, latency, and unpredictability with no benefit.
-
-### Transparent by design
-Because the engine is a weighted checklist rather than a model, every eligibility decision decomposes into exactly which criteria passed and which failed. This matters for a financial aid program — if a student is told they qualify or don't qualify, the system can explain precisely why.
+- **Portal UI** (`public/index.html`) — Team-13 student dashboard showing eligibility + tracking status
+- **Backend API** (`src/app/api/`) — Next.js API routes that read/write DynamoDB and send emails
+- **DynamoDB** — stores student eligibility status, email tracking, opt-in/out decisions, staff notes
+- **AWS SES** — sends personalized emails with trackable accept/opt-out links
+- **Phone mockup** (`/phone`) — simulates SMS notifications with Y/N reply handling
 
 ---
 
-## EOPS Eligibility Rules
+## Programs Matched
 
-A student must meet **all five** of the following criteria:
-
-| # | Criterion | Details |
-|---|-----------|---------|
-| 1 | **California Residency** | Must be a CA Resident or AB540 (undocumented) student |
-| 2 | **Full-Time Enrollment** | 12+ units in progress (6+ for DSPS students) |
-| 3 | **Unit Ceiling** | Fewer than 70 degree-applicable units completed |
-| 4 | **Financial Need** | Qualifies for CA College Promise Grant (BOG Fee Waiver), CCPG, Pell Grant, income bracket ≤ $36k, SAI = 0, or homeless youth status |
-| 5 | **Educational Qualifier** | At least one of: no HS diploma/GED, GPA ≤ 2.5, first-generation college student, underrepresented population, or current/former foster youth |
-
----
-
-## How the Code Works
-
-```
-Student loads the page
-        │
-        ▼
-page.tsx passes student profile to <EopsBanner>
-        │
-        ▼
-EopsBanner (client component) sends POST /api/eops
-        │
-        ▼
-src/app/api/eops/route.ts receives the request
-        │
-        ▼
-src/lib/eopsEligibility.ts runs the 5 eligibility checks
-        │
-    eligible?
-    ┌───┴───┐
-   YES      NO
-    │        │
-    ▼        ▼
-Banner    Nothing
-slides    shown
-in with
-confetti
-```
-
-### File by file
-
-| File | What it does |
-|------|-------------|
-| `src/app/page.tsx` | The portal page. Holds the student profile (mock for now, replace with real auth session in production) and renders the banner + dashboard |
-| `src/app/api/eops/route.ts` | Next.js API route. Receives the student profile via POST, passes it to the eligibility engine, returns the result as JSON |
-| `src/lib/eopsEligibility.ts` | The eligibility rules engine. Pure TypeScript — no dependencies, no network calls. Returns `eligible: true/false`, the reasons that passed, the reasons that failed, and the personalised banner message |
-| `src/components/EopsBanner.tsx` | The React component. Calls the API on mount, renders the DXHub-designed notification card with confetti and dropdown if eligible. Dismissed per-session via `sessionStorage` |
-| `src/components/StudentDashboard.tsx` | Placeholder page body (courses, schedule, resources cards) |
-| `src/app/layout.tsx` | Next.js root layout — sets page title and base font |
-
-### Testing locally against fake data
-
-The `eops/` folder contains a Python version of the same rules engine plus a test runner:
-
-```bash
-# Run the eligibility check against all 100 fake student profiles
-python3 eops/test_runner.py --verbose
-
-# Also export results to CSV
-python3 eops/test_runner.py --csv
-```
-
-The 100 fake student profiles in `data/students/` mirror the fields that come from CCCApply into Banner SIS and FAFSA/CADAA. They were generated with `data/generate_students.py` and are intended for testing only — every file includes `"data_classification": "FAKE — For Testing Only"`.
-
-Test results on the 100 profiles:
-- **26 eligible** (26%) — realistic for an actual EOPS-eligible population
-- **74 not eligible** — most common reasons: non-CA residency (47), insufficient units (33)
-- **0 missing data** — all profiles had enough information to make a decision
-
----
-
-## Project Structure
-
-```
-GoldenWestBanner/
-├── src/
-│   ├── app/
-│   │   ├── layout.tsx              Root layout
-│   │   ├── page.tsx                Student portal page
-│   │   └── api/eops/route.ts       EOPS eligibility API endpoint
-│   ├── components/
-│   │   ├── EopsBanner.tsx          Notification banner (DXHub design)
-│   │   └── StudentDashboard.tsx    Page body placeholder
-│   └── lib/
-│       └── eopsEligibility.ts      TypeScript rules engine
-├── eops/
-│   ├── eligibility.py              Python rules engine (same logic)
-│   └── test_runner.py              Test runner for 100 fake profiles
-├── data/
-│   ├── students/                   100 fake student JSON profiles
-│   ├── generate_students.py        Profile generator script
-│   ├── generate_pdf.py             PDF generator for the profiles
-│   └── GoldenWest_Student_Profiles.pdf
-├── package.json
-├── tsconfig.json
-└── next.config.js
-```
+| Program | Criteria |
+|---------|----------|
+| EOPS | Low income + educationally disadvantaged + 12+ units |
+| CARE | EOPS eligible + single parent + public assistance |
+| CalWORKs | Receiving county CalWORKs cash aid |
+| NextUp | Current/former foster youth |
+| DSPS | Documented disability |
+| Veterans | Veteran or active service member |
+| Golden Promise | First-time, full-time CA resident |
+| Basic Needs | Housing or food insecurity |
 
 ---
 
@@ -146,52 +54,132 @@ GoldenWestBanner/
 # Install dependencies
 npm install
 
+# Set up AWS credentials (needed for DynamoDB + SES)
+aws sso login --profile YOUR_PROFILE
+eval "$(aws configure export-credentials --profile YOUR_PROFILE --format env)"
+
 # Start the dev server
-npm run dev
+AWS_REGION=us-west-2 npm run dev
 
-# Open in browser
-# http://localhost:3000
+# Seed the database with 25 students
+open http://localhost:3000/api/seed
+
+# Send emails to all eligible students
+curl -X POST http://localhost:3000/api/send-emails-batch
+
+# Open the dashboard
+open http://localhost:3000/index.html
+
+# Open the phone SMS mockup
+open http://localhost:3000/phone
 ```
 
-Requires Node.js 18 or higher.
+Requires Node.js 18+ and AWS credentials with DynamoDB/SES access.
 
 ---
 
-## Deploying to Vercel
+## API Endpoints
 
-1. Push this repo to GitHub
-2. Go to [vercel.com](https://vercel.com) → sign in with GitHub
-3. Click **Add New Project** → select `GoldenWestBanner`
-4. Click **Deploy** — Vercel auto-detects Next.js, no configuration needed
-
-Every push to `main` triggers an automatic redeploy.
+| Endpoint | Method | What it does |
+|----------|--------|-------------|
+| `/api/seed` | GET | Seeds DynamoDB with 25 students (same as portal UI) |
+| `/api/send-emails-batch` | POST | Sends emails to all confirmed students (idempotent) |
+| `/api/accept?token=xxx` | GET | Student clicks Accept link — records in DynamoDB, shows confetti |
+| `/api/optout?token=xxx` | GET | Student clicks Opt-out link — records in DynamoDB |
+| `/api/tracking` | GET | Returns tracking status for all students |
+| `/api/sms-reply` | POST | Handles Y/N SMS replies from phone mockup |
+| `/api/sms-accept` | POST | Records SMS opt-in directly by CWID |
+| `/api/sms-optout` | POST | Records SMS opt-out directly by CWID |
+| `/api/test-time` | GET | Backdates emails for 24h/48h alert demo |
+| `/api/cron/check-outreach` | GET | Flags students who haven't responded after 3 days |
+| `/api/dashboard` | GET | Returns data for staff views |
+| `/api/dashboard/export` | GET | Downloads CSV for Slate import |
+| `/api/dashboard/note` | POST | Staff adds notes/logs calls per student |
 
 ---
 
-## Connecting to Real Student Data
+## Project Structure
 
-The `MOCK_STUDENT_PROFILE` object in `src/app/page.tsx` is a placeholder. In production, replace it with the authenticated student's real data from your identity provider:
-
-```ts
-// Example with NextAuth
-import { getServerSession } from "next-auth";
-const session = await getServerSession();
-const profile = await fetchStudentProfile(session.user.cwid);
+```
+GoldenWestBanner/
+├── public/                          ← Dashboard UI (Team-13)
+│   ├── index.html                   Main portal page
+│   ├── index.js                     Frontend logic
+│   ├── portal.js                    Admin panel + eligibility modal + tracking overlay
+│   ├── students.js                  Student data + eligibility rules engine
+│   ├── styles/styles.css            Styling
+│   ├── records/                     Individual student record pages
+│   └── widget/                      Standalone widget for GWC's Banner portal
+├── src/
+│   ├── app/
+│   │   ├── api/                     All backend API routes
+│   │   ├── phone/page.tsx           SMS phone mockup page
+│   │   ├── layout.tsx               Root layout
+│   │   └── page.tsx                 Redirects to /index.html
+│   ├── components/
+│   │   ├── PhoneMockup.tsx          iPhone SMS simulation component
+│   │   └── SmsSimulationPanel.tsx   SMS panel (fetches students from DynamoDB)
+│   └── lib/
+│       ├── db/schema.ts             Database schema (Slate-ready field names)
+│       ├── db/store.ts              DynamoDB read/write operations
+│       ├── programsEligibility.ts   Multi-program eligibility engine
+│       └── sms/sendSms.ts           SMS module (ready, disabled until sender registered)
+├── data/
+│   └── eligibility_from_ui.json     Pre-computed eligibility (from students.js rules)
+├── presentation.pptx                10-slide presentation for Canva
+├── SLATE_MIGRATION_GUIDE.md         Step-by-step for school staff to import into Slate
+├── WIDGET_IMPLEMENTATION_GUIDE.md   How to add the popup widget to GWC's portal
+├── README.md
+├── package.json
+└── .gitignore
 ```
 
-The profile object needs three sections matching the shape in `src/lib/eopsEligibility.ts`:
-- `banner_sis` — from Banner SIS (residency, enrollment, units, GPA, special populations)
-- `fafsa_cadaa` — from financial aid system (BOG waiver, CCPG, income bracket, Pell, SAI)
-- `cccapply` — from CCCApply (HS diploma, foster youth, homeless youth, prior college attendance)
+---
+
+## AWS Resources Used
+
+| Service | Resource | Purpose |
+|---------|----------|---------|
+| DynamoDB | `ep_students` table + GSI | Student eligibility + tracking data |
+| DynamoDB | `ep_accept_tokens` table | Trackable email link tokens |
+| DynamoDB | `ep_outreach_log` table | Audit log of all actions |
+| SES | Sandbox mode | Sends notification emails |
+
+Region: `us-west-2` | Account: `731049002539`
+
+---
+
+## Key Design Decisions
+
+**Rules-based, not AI** — eligibility criteria are fixed legal requirements (California Title 5). A rules engine is deterministic, free, instant, and auditable. No Bedrock/AI needed.
+
+**Idempotent email sending** — re-running the send job never spams students. It checks `ep_[program]_email_sent` before sending.
+
+**Slate-ready field naming** — all fields use the `ep_` prefix so they map directly to Slate custom fields on import.
+
+**Single source of truth** — DynamoDB holds all tracking data. The portal UI, phone mockup, and staff tools all read from the same place.
+
+---
+
+## Migrating to Slate
+
+See `SLATE_MIGRATION_GUIDE.md` for complete step-by-step instructions. Summary:
+1. Create `ep_` custom fields in Slate
+2. Export CSV from `/api/dashboard/export`
+3. Import CSV into Slate (matches by CWID)
+4. Set up Slate Rules to automate follow-ups
+5. Slate takes over email/SMS/tracking natively
 
 ---
 
 ## Built With
 
-- [Next.js 14](https://nextjs.org) — React framework (App Router)
+- [Next.js 14](https://nextjs.org) — App Router
 - [TypeScript](https://www.typescriptlang.org)
-- Banner design by **DXHub**
-- EOPS eligibility criteria per California Title 5, §56220 and [GWC EOPS office](https://www.goldenwestcollege.edu/eops/)
+- [AWS DynamoDB](https://aws.amazon.com/dynamodb/) — Database
+- [AWS SES](https://aws.amazon.com/ses/) — Email delivery
+- UI by **Team-13 / DXHub**
+- GWC brand colors: Primary Green `#0F603D`, Gold `#FFC522`
 
 ---
 
