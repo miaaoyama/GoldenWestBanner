@@ -756,170 +756,139 @@
 /* ============================================================================
    TRACKING STATUS OVERLAY
    Fetches email tracking data from DynamoDB via /api/tracking and updates
-   the program cards in the admin view to show:
+   student decisions + admin panel badges to show:
      - "Opted In" (green) if student clicked accept
-     - "Opted Out" (gray) if student clicked opt-out
+     - "Opted Out" (gray) if student clicked opt-out  
      - "Pending - X days" if waiting, with red background after 48h
    ========================================================================== */
 (function() {
   "use strict";
 
-  var trackingData = null;
+  var T = window.TAFT;
+  if (!T) return;
 
-  function fetchTracking() {
+  function fetchAndApplyTracking() {
     fetch("/api/tracking")
       .then(function(r) { return r.json(); })
       .then(function(data) {
-        trackingData = {};
-        data.tracking.forEach(function(t) {
-          trackingData[t.name] = t.programs;
-        });
-        updateTrackingDisplay();
+        applyTracking(data.tracking);
       })
       .catch(function(err) {
         console.log("[Tracking] API not available:", err.message);
       });
   }
 
-  function updateTrackingDisplay() {
-    if (!trackingData) return;
+  function applyTracking(trackingList) {
+    trackingList.forEach(function(t) {
+      // Find the matching student in TAFT
+      var student = T.STUDENTS.filter(function(s) { return s.name === t.name; })[0];
+      if (!student) return;
 
-    // Find all student rows in the admin panel list
+      // Apply tracking status as decisions
+      ["eops","care","calworks","nextup","vrc","dsps","promise","basicneeds"].forEach(function(prog) {
+        var status = t.programs[prog];
+        if (!status) return;
+
+        if (status.status === "opted_in") {
+          student.decisions[prog] = "accepted";
+        } else if (status.status === "opted_out") {
+          student.decisions[prog] = "declined";
+        }
+        // For "pending" — add tracking info to the student for display
+        if (status.status === "pending") {
+          if (!student._tracking) student._tracking = {};
+          student._tracking[prog] = status;
+        }
+      });
+    });
+
+    // Refresh the admin panel display if it exists
+    updateAdminPanel(trackingList);
+    
+    // Trigger a re-render of the admin analytics if the function exists
+    if (window._refreshAdmin) window._refreshAdmin();
+  }
+
+  function updateAdminPanel(trackingList) {
+    // Find all student rows in the admin student list
     var rows = document.querySelectorAll(".spl-row");
+    if (!rows.length) return;
+
+    var trackingMap = {};
+    trackingList.forEach(function(t) { trackingMap[t.name] = t.programs; });
+
     rows.forEach(function(row) {
       var nameEl = row.querySelector(".spl-name");
       if (!nameEl) return;
       var name = nameEl.textContent.trim();
-      var tracking = trackingData[name];
+      var tracking = trackingMap[name];
       if (!tracking) return;
 
-      // Find or create the tracking badge container
+      // Find or create badge container
       var badge = row.querySelector(".tracking-badge");
       if (!badge) {
         badge = document.createElement("div");
         badge.className = "tracking-badge";
         badge.style.cssText = "display:flex;gap:4px;margin-top:4px;flex-wrap:wrap;";
-        var labelEl = row.querySelector(".spl-label") || nameEl;
-        labelEl.parentNode.insertBefore(badge, labelEl.nextSibling);
+        row.appendChild(badge);
       }
       badge.innerHTML = "";
 
-      // Show badge per program
       ["eops","care","calworks"].forEach(function(prog) {
         var s = tracking[prog];
         if (!s || s.status === "not_eligible" || s.status === "not_sent") return;
 
         var span = document.createElement("span");
-        span.style.cssText = "font-size:10px;padding:2px 6px;border-radius:4px;font-weight:700;display:inline-block;";
+        span.style.cssText = "font-size:10px;padding:2px 6px;border-radius:4px;font-weight:700;";
 
         var label = prog.toUpperCase();
-
         if (s.status === "opted_in") {
           span.style.background = "#0F603D";
           span.style.color = "#fff";
-          span.textContent = label + ": Opted In ✓";
+          span.textContent = label + ": Opted In \u2713";
         } else if (s.status === "opted_out") {
           span.style.background = "#6b7280";
           span.style.color = "#fff";
           span.textContent = label + ": Opted Out";
         } else if (s.status === "pending") {
           if (s.urgent) {
-            // Over 48 hours — red background, show hours
             span.style.background = "#dc2626";
             span.style.color = "#fff";
-            span.textContent = label + ": " + s.hoursSince + "h no response ⚠";
+            span.textContent = label + ": " + s.hoursSince + "h no response \u26A0";
           } else if (s.daysSince >= 1) {
-            // Over 24h — show days
             span.style.background = "#f59e0b";
             span.style.color = "#000";
             span.textContent = label + ": " + s.daysSince + "d waiting";
           } else {
-            // Under 24h
             span.style.background = "#e5e7eb";
             span.style.color = "#374151";
             span.textContent = label + ": Sent today";
           }
         }
-
         badge.appendChild(span);
       });
     });
-  }
 
-  // Also update the program cards in the eligibility modal
-  function updateProgramCards() {
-    if (!trackingData || !window.TAFT) return;
-    var T = window.TAFT;
-    var currentStudent = T.STUDENTS[0]; // default first student
-    // Try to find current student from admin state
-    if (window._portalCurrentName) {
-      currentStudent = T.STUDENTS.filter(function(s) { return s.name === window._portalCurrentName; })[0] || T.STUDENTS[0];
+    // Also update the "pending" count in the admin stats
+    var pendingEl = document.querySelector(".stat-pending-count");
+    if (pendingEl) {
+      var pending = 0;
+      trackingList.forEach(function(t) {
+        var hasPending = Object.values(t.programs).some(function(p) { return p.status === "pending"; });
+        if (hasPending) pending++;
+      });
+      pendingEl.textContent = pending + " awaiting response";
     }
-
-    var tracking = trackingData[currentStudent.name];
-    if (!tracking) return;
-
-    var cards = document.querySelectorAll(".prog-card");
-    cards.forEach(function(card) {
-      var cardId = card.getAttribute("data-card");
-      if (!cardId) return;
-      var t = tracking[cardId];
-      if (!t || t.status === "not_eligible" || t.status === "not_sent") return;
-
-      // Find or create tracking tag
-      var existing = card.querySelector(".tracking-tag");
-      if (!existing) {
-        existing = document.createElement("div");
-        existing.className = "tracking-tag";
-        existing.style.cssText = "margin-top:8px;padding:6px 10px;border-radius:6px;font-size:12px;font-weight:700;";
-        card.appendChild(existing);
-      }
-
-      if (t.status === "opted_in") {
-        existing.style.background = "#0F603D";
-        existing.style.color = "#fff";
-        existing.textContent = "✓ Student has opted in — advisor will reach out.";
-      } else if (t.status === "opted_out") {
-        existing.style.background = "#f3f4f6";
-        existing.style.color = "#6b7280";
-        existing.textContent = "Student opted out of this program.";
-      } else if (t.status === "pending") {
-        if (t.urgent) {
-          existing.style.background = "#dc2626";
-          existing.style.color = "#fff";
-          existing.textContent = "⚠ No response for " + t.hoursSince + " hours — follow up needed";
-        } else if (t.daysSince >= 1) {
-          existing.style.background = "#fef3c7";
-          existing.style.color = "#92400e";
-          existing.textContent = "Pending — " + t.daysSince + " day(s) since email sent";
-        } else {
-          existing.style.background = "#f0fdf4";
-          existing.style.color = "#166534";
-          existing.textContent = "Email sent today — awaiting response";
-        }
-      }
-    });
   }
 
-  // Fetch on load, then refresh every 30 seconds
+  // Fetch on load and refresh every 15 seconds
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function() {
-      fetchTracking();
-      setInterval(fetchTracking, 30000);
+      setTimeout(fetchAndApplyTracking, 500); // slight delay for TAFT to init
+      setInterval(fetchAndApplyTracking, 15000);
     });
   } else {
-    fetchTracking();
-    setInterval(fetchTracking, 30000);
+    setTimeout(fetchAndApplyTracking, 500);
+    setInterval(fetchAndApplyTracking, 15000);
   }
-
-  // Re-run when modal opens
-  var observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(m) {
-      if (m.target.classList && m.target.classList.contains("open")) {
-        setTimeout(updateProgramCards, 100);
-      }
-    });
-  });
-  var modal = document.getElementById("eligModal");
-  if (modal) observer.observe(modal, { attributes: true, attributeFilter: ["class"] });
 })();
