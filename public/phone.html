@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GWC SMS Demo</title>
+<style>
+body { background: #1a1a2e; margin: 0; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; padding: 30px 20px; min-height: 100vh; }
+.phone { width: 340px; height: 640px; background: #000; border-radius: 44px; padding: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); position: relative; }
+.screen { background: #fff; border-radius: 34px; height: 100%; overflow: hidden; display: flex; flex-direction: column; }
+.header { background: #f8f8f8; padding: 40px 16px 10px; border-bottom: 1px solid #e5e5e5; text-align: center; font-size: 13px; font-weight: 600; color: #333; }
+.messages { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.msg { max-width: 85%; padding: 10px 14px; border-radius: 16px; font-size: 13px; line-height: 1.4; white-space: pre-wrap; word-wrap: break-word; animation: fadeIn 0.3s ease; }
+.msg.incoming { background: #e5e5ea; color: #000; align-self: flex-start; border-bottom-left-radius: 4px; }
+.msg.outgoing { background: #34c759; color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+.input-bar { display: flex; gap: 8px; padding: 8px 12px; border-top: 1px solid #e5e5e5; background: #f8f8f8; }
+.input-bar input { flex: 1; border: 1px solid #ddd; border-radius: 20px; padding: 8px 14px; font-size: 13px; outline: none; }
+.input-bar button { background: #34c759; color: #fff; border: none; border-radius: 50%; width: 32px; height: 32px; font-size: 14px; cursor: pointer; }
+.controls { margin-top: 20px; text-align: center; }
+.send-btn { background: #0F603D; color: #fff; border: none; padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; }
+.send-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+.info { color: #9ca3af; font-size: 12px; margin-top: 10px; }
+.confetti { position: absolute; inset: 0; pointer-events: none; border-radius: 34px; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="screen">
+    <div class="header">Golden West College</div>
+    <div class="messages" id="messages"></div>
+    <div class="input-bar">
+      <input type="text" id="input" placeholder="Reply Y or N..." />
+      <button onclick="sendReply()">↑</button>
+    </div>
+  </div>
+  <canvas class="confetti" id="confetti"></canvas>
+</div>
+
+<div class="controls">
+  <button class="send-btn" id="sendBtn" onclick="sendToNextStudent()">Send SMS to Next Student →</button>
+  <div class="info" id="info">Loading students...</div>
+</div>
+
+<script>
+var API = "https://3mag8ec9a2.execute-api.us-west-2.amazonaws.com/prod";
+var students = [];
+var currentIndex = 0;
+var currentStudent = null;
+
+// Load students
+fetch(API + "/api/tracking")
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    students = data.tracking.filter(function(t) {
+      return Object.values(t.programs).some(function(p) { return p.eligibility === "confirmed" || p.status === "not_sent"; });
+    });
+    document.getElementById("info").textContent = students.length + " students loaded";
+  })
+  .catch(function() { document.getElementById("info").textContent = "Could not load students"; });
+
+function sendToNextStudent() {
+  if (students.length === 0) return;
+  currentStudent = students[currentIndex % students.length];
+  currentIndex++;
+  
+  var firstName = currentStudent.name.split(" ")[0];
+  var progs = Object.entries(currentStudent.programs)
+    .filter(function(e) { return e[1].status !== "not_eligible"; })
+    .map(function(e) { return e[0].toUpperCase(); });
+  
+  document.getElementById("messages").innerHTML = "";
+  
+  var body;
+  var alreadyAccepted = Object.values(currentStudent.programs).some(function(p) { return p.status === "opted_in"; });
+  if (alreadyAccepted) {
+    body = "[Golden West College]\n\nHi " + firstName + "! You have already been accepted into: " + progs.join(", ") + ".\n\nThank you! Your counselor will be in touch.";
+  } else {
+    body = "[Golden West College]\n\nCongratulations " + firstName + "! You are 100% eligible for: " + progs.join(", ") + ".\n\nReply Y to opt in or N to opt out.\n\nQuestions? (714) 892-7711";
+  }
+  
+  addMessage(body, "incoming");
+  document.getElementById("info").textContent = currentStudent.name + " (" + currentIndex + "/" + students.length + ")";
+}
+
+function sendReply() {
+  var input = document.getElementById("input");
+  var text = input.value.trim();
+  if (!text) return;
+  input.value = "";
+  
+  addMessage(text.toUpperCase(), "outgoing");
+  var lower = text.toLowerCase();
+  
+  setTimeout(function() {
+    if (lower === "y" || lower === "yes") {
+      // Call backend
+      fetch(API + "/api/sms-reply", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ action: "accept", studentName: currentStudent.name })
+      }).catch(function() {});
+      
+      addMessage("Thank you! You have been opted in. 🎉\n\nMake an appointment with a counselor within 1-2 business days.\n\nhttps://www.goldenwestcollege.edu/counseling/", "incoming");
+      showConfetti();
+    } else if (lower === "n" || lower === "no") {
+      fetch(API + "/api/sms-reply", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ action: "optout", studentName: currentStudent.name })
+      }).catch(function() {});
+      
+      addMessage("You have been opted out. If you change your mind, contact EOPS at (714) 892-7711 ext. 55327.", "incoming");
+    } else {
+      addMessage("Sorry, we didn't understand. Please reply Y to opt in or N to opt out.", "incoming");
+    }
+  }, 800);
+}
+
+function addMessage(text, type) {
+  var div = document.createElement("div");
+  div.className = "msg " + type;
+  div.textContent = text;
+  var container = document.getElementById("messages");
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function showConfetti() {
+  var canvas = document.getElementById("confetti");
+  var ctx = canvas.getContext("2d");
+  canvas.width = 316; canvas.height = 616;
+  var colors = ["#0F603D","#FFC522","#BADB3E","#34d399","#f472b6"];
+  var pieces = [];
+  for (var i = 0; i < 80; i++) {
+    pieces.push({x:Math.random()*canvas.width, y:Math.random()*-100, w:5+Math.random()*5, h:3+Math.random()*4, color:colors[Math.floor(Math.random()*colors.length)], vx:(Math.random()-0.5)*4, vy:2+Math.random()*3, angle:Math.random()*6.28, spin:(Math.random()-0.5)*0.2, opacity:1, gravity:0.08});
+  }
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces = pieces.filter(function(p){return p.opacity > 0.02;});
+    pieces.forEach(function(p) {
+      p.vy+=p.gravity;p.x+=p.vx;p.y+=p.vy;p.angle+=p.spin;p.opacity*=0.99;
+      ctx.save();ctx.globalAlpha=p.opacity;ctx.translate(p.x,p.y);ctx.rotate(p.angle);
+      ctx.fillStyle=p.color;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);ctx.restore();
+    });
+    if (pieces.length > 0) requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+document.getElementById("input").addEventListener("keydown", function(e) {
+  if (e.key === "Enter") sendReply();
+});
+</script>
+</body>
+</html>

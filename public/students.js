@@ -51,6 +51,7 @@
         var load = s.currentUnits >= 12;
         if (econ && eduDisadv && load) return "qualified";
         if (econ && eduDisadv && s.currentUnits >= 9) return "almost";
+        if (econ || eduDisadv) return "almost";
         return "not";
       },
       almostMissing: "Enroll in at least 12 units this term to complete EOPS eligibility.",
@@ -95,16 +96,16 @@
         "welfare-to-work plan instead of competing with it.",
       qualifies: function (s) {
         if (s.survey.calworks) return "qualified";
-        if (s.survey.calworks === false && s.survey.singleParent && s.survey.publicAssistance) return "almost";
+        if (s.survey.publicAssistance) return "almost";
         return "not";
       },
       almostMissing: "Provide your county CalWORKs case number to activate campus services.",
       notReason: "Requires active county CalWORKs cash aid, which is not on file."
     },
     {
-      id: "nextup",
+      id: "Nextup",
       name: "NextUp / Guardian Scholars (Foster Youth)",
-      shortName: "NextUp",
+      shortName: "NextUp / Guardian Scholarship",
       funding: "$2,000+ / year + housing, transportation & food support",
       deadline: "August 22, 2026 (limited cohort)",
       counseling: "Dedicated foster-youth success coach and year-round contact.",
@@ -168,7 +169,7 @@
     {
       id: "promise",
       name: "Golden West College Promise (First-Year Experience)",
-      shortName: "Promise",
+      shortName: " Golden Promise",
       funding: "Waives enrollment fees for two years + $300 book credit",
       deadline: "August 1, 2026",
       counseling: "First-Year Experience cohort counselor.",
@@ -184,7 +185,7 @@
         var resident = s.residency === "California Resident";
         var fullTime = s.currentUnits >= 12;
         if (firstTime && resident && fullTime) return "qualified";
-        if (firstTime && resident && s.currentUnits >= 9) return "almost";
+        if (resident && fullTime) return "almost";
         return "not";
       },
       almostMissing: "The Promise is strongest for first-time students; you may still qualify for continuing-student aid.",
@@ -355,6 +356,16 @@
       // program decisions made in-session (Feature 3)
       decisions: {}
     };
+
+    // Mock timestamp: when the student was matched to programs.
+    // Spread across the last 30 days so time-period filtering is demonstrable.
+    // Deterministic per-student (based on idx) for consistency across refreshes.
+    var THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    var offsets = [0.01, 0.03, 0.06, 0.1, 0.14, 0.18, 0.22, 0.28, 0.34, 0.4,
+                  0.46, 0.52, 0.58, 0.62, 0.66, 0.7, 0.74, 0.78, 0.82, 0.86,
+                  0.88, 0.9, 0.92, 0.94, 0.96, 0.98];
+    var offsetFraction = offsets[(idx - 1) % offsets.length];
+    s.matchedAt = Date.now() - Math.round(offsetFraction * THIRTY_DAYS_MS);
 
     return s;
   });
