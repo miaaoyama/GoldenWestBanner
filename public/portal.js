@@ -175,6 +175,11 @@
     if (m.qualified.length) m.qualified.forEach(function (p) { html += progCardHtml(p); });
     else html += '<div class="prog-reason">No current qualifications on file.</div>';
 
+    if (m.almost.length) {
+      html += '<div class="modal-section-title almost">Needs action to complete <span class="count-pill">' + m.almost.length + "</span></div>";
+      m.almost.forEach(function (p) { html += progCardHtml(p); });
+    }
+
     body.innerHTML = html;
   }
 
@@ -417,7 +422,7 @@
 
   /* ---- Program dropdown under student name in roster ------------------- */
   function studentProgramListHtml(s) {
-    var programs = s.matches.qualified;
+    var programs = s.matches.qualified.concat(s.matches.almost);
     var count = programs.length;
 
     var items = programs.map(function (p) {
@@ -443,6 +448,13 @@
       }
 
       var almostHtml = "";
+      if (p.status === "almost") {
+        almostHtml =
+          '<div class="spl-almost-detail">' +
+            '<span class="spl-almost-badge">Needs Action</span>' +
+            (p.missing ? '<span class="spl-missing">&#9888; ' + esc(p.missing) + '</span>' : '') +
+          '</div>';
+      }
 
       return '<li class="spl-item">' +
         '<div class="spl-row">' +
