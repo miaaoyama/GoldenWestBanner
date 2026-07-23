@@ -77,7 +77,7 @@ function nextStudent() {
 
   var rows = "";
   confirmed.forEach(function(p) {
-    rows += '<tr><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;">' + p.displayName + '</td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;"><span style="background:#0F603D;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;">100% Qualified</span></td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;"><button onclick="handleAccept(\'' + currentStudent.name + '\')" style="background:#0F603D;color:#fff;padding:6px 14px;border-radius:6px;border:none;font-size:13px;font-weight:600;cursor:pointer;">Accept →</button> <button onclick="handleOptout(\'' + currentStudent.name + '\')" style="background:none;border:none;color:#9ca3af;font-size:11px;margin-left:8px;text-decoration:underline;cursor:pointer;">Opt out</button></td></tr>';
+    rows += '<tr><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;">' + p.displayName + '</td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;"><span style="background:#0F603D;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;">100% Qualified</span></td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">✓</td></tr>';
   });
 
   var conditionalHtml = "";
@@ -98,7 +98,8 @@ function nextStudent() {
         '<p style="font-size:15px;color:#374151;margin-top:12px;">Based on your enrollment records, you qualify for the following support programs at GWC:</p>' +
         '<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;"><thead><tr style="background:#f2f8f5;"><th style="padding:8px 12px;text-align:left;">Program</th><th style="padding:8px 12px;text-align:left;">Status</th><th style="padding:8px 12px;text-align:left;">Action</th></tr></thead><tbody>' + rows + '</tbody></table>' +
         conditionalHtml +
-        '<p style="font-size:13px;color:#6b7280;margin-top:16px;">Click "Accept" to confirm your spot or "Opt out" to stop receiving these notifications.</p>' +
+        '<div style="text-align:center;margin:24px 0 16px;"><button onclick="handleAccept(\'' + currentStudent.name + '\')" style="background:#0F603D;color:#fff;padding:12px 32px;border-radius:10px;border:none;font-size:15px;font-weight:700;cursor:pointer;">Accept All Programs →</button></div>' +
+        '<p style="text-align:center;"><button onclick="handleOptout(\'' + currentStudent.name + '\')" style="background:none;border:none;color:#9ca3af;font-size:12px;cursor:pointer;text-decoration:underline;">No thanks — opt out of all</button></p>' +
         '<p style="font-size:11px;color:#9ca3af;margin-top:20px;border-top:1px solid #e5e7eb;padding-top:12px;">Golden West College | 15744 Goldenwest St, Huntington Beach, CA 92647</p>' +
       '</div>' +
     '</div>';
