@@ -51,7 +51,6 @@
         var load = s.currentUnits >= 12;
         if (econ && eduDisadv && load) return "qualified";
         if (econ && eduDisadv && s.currentUnits >= 9) return "almost";
-        if (econ || eduDisadv) return "almost";
         return "not";
       },
       almostMissing: "Enroll in at least 12 units this term to complete EOPS eligibility.",
@@ -96,7 +95,7 @@
         "welfare-to-work plan instead of competing with it.",
       qualifies: function (s) {
         if (s.survey.calworks) return "qualified";
-        if (s.survey.publicAssistance) return "almost";
+        if (s.survey.calworks === false && s.survey.singleParent && s.survey.publicAssistance) return "almost";
         return "not";
       },
       almostMissing: "Provide your county CalWORKs case number to activate campus services.",
@@ -185,7 +184,7 @@
         var resident = s.residency === "California Resident";
         var fullTime = s.currentUnits >= 12;
         if (firstTime && resident && fullTime) return "qualified";
-        if (resident && fullTime) return "almost";
+        if (firstTime && resident && s.currentUnits >= 9) return "almost";
         return "not";
       },
       almostMissing: "The Promise is strongest for first-time students; you may still qualify for continuing-student aid.",
