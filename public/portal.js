@@ -736,6 +736,12 @@
     initRosterTabs();
     renderRoster();
 
+    // Expose refresh function for the tracking overlay to call
+    window._refreshAdmin = function() {
+      renderAnalytics();
+      renderRoster();
+    };
+
     // First-load notification toast
     setTimeout(showToast, 700);
   }
