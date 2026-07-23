@@ -45,11 +45,21 @@ export default function SmsSimulationPanel() {
             const conditionalProgs = Object.entries(t.programs)
               .filter(([_, p]: [string, any]) => p.eligibility === "conditional")
               .map(([_, p]: [string, any]) => ({ name: p.displayName, missing: p.missingDocs }));
+            // Check if already accepted (via email or previous SMS)
+            const alreadyAccepted = Object.values(t.programs).some(
+              (p: any) => p.status === "opted_in"
+            );
+            const alreadyOptedOut = Object.values(t.programs).some(
+              (p: any) => p.status === "opted_out"
+            );
             return {
               name: t.name,
+              cwid: t.cwid,
               phone: "(714) " + Math.floor(100 + Math.random() * 900) + "-" + Math.floor(1000 + Math.random() * 9000),
               programs: confirmedProgs,
               conditionalPrograms: conditionalProgs,
+              alreadyAccepted,
+              alreadyOptedOut,
               tier: "Tier 1",
               gpa: 0,
               major: "",
@@ -72,12 +82,22 @@ export default function SmsSimulationPanel() {
     setStudentIndex(prev => prev + 1);
 
     setTimeout(() => {
-      const programList = student.programs.join(", ");
-      const conditionalText = student.conditionalPrograms && student.conditionalPrograms.length > 0
-        ? `\n\nYou may also qualify for ${student.conditionalPrograms.map((p: any) => p.name).join(", ")} once we receive: ${student.conditionalPrograms.map((p: any) => p.missing).join("; ")}`
-        : "";
+      let smsBody: string;
 
-      const smsBody = `[Golden West College]\n\nCongratulations ${student.name.split(" ")[0]}! You are 100% eligible for: ${programList}.\n\nReply Y to opt in or N to opt out.${conditionalText}\n\nQuestions? (714) 892-7711 ext. 55327`;
+      if (student.alreadyAccepted) {
+        // Student already accepted via email — don't ask again
+        smsBody = `[Golden West College]\n\nHi ${student.name.split(" ")[0]}! You have already been accepted into: ${student.programs.join(", ")}.\n\nThank you! Your counselor will be in touch with next steps.\n\nQuestions? (714) 892-7711 ext. 55327`;
+      } else if (student.alreadyOptedOut) {
+        // Student already opted out
+        smsBody = `[Golden West College]\n\nHi ${student.name.split(" ")[0]}, you previously opted out of program notifications. If you've changed your mind, visit Student Services or call (714) 892-7711 ext. 55327.`;
+      } else {
+        // Normal — hasn't responded yet
+        const programList = student.programs.join(", ");
+        const conditionalText = student.conditionalPrograms && student.conditionalPrograms.length > 0
+          ? `\n\nYou may also qualify for ${student.conditionalPrograms.map((p: any) => p.name).join(", ")} once we receive: ${student.conditionalPrograms.map((p: any) => p.missing).join("; ")}`
+          : "";
+        smsBody = `[Golden West College]\n\nCongratulations ${student.name.split(" ")[0]}! You are 100% eligible for: ${programList}.\n\nReply Y to opt in or N to opt out.${conditionalText}\n\nQuestions? (714) 892-7711 ext. 55327`;
+      }
 
       const newMessage: SmsMessage = {
         id: crypto.randomUUID(),
