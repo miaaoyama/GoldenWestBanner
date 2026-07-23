@@ -41,7 +41,7 @@ export async function POST() {
     const links: Record<string, string> = {};
 
     // EOPS — idempotency: only send if not already sent
-    if ((student.ep_eops_status === "confirmed" || student.ep_eops_status === "conditional") && !student.ep_eops_email_sent) {
+    if ((student.ep_eops_status === "confirmed") && !student.ep_eops_email_sent) {
       const token = await createAcceptToken(student.cwid, "eops");
       student.ep_eops_email_sent = now;
       programs.push("EOPS");
@@ -49,7 +49,7 @@ export async function POST() {
     }
 
     // CARE
-    if ((student.ep_care_status === "confirmed" || student.ep_care_status === "conditional") && !student.ep_care_email_sent) {
+    if ((student.ep_care_status === "confirmed") && !student.ep_care_email_sent) {
       const token = await createAcceptToken(student.cwid, "care");
       student.ep_care_email_sent = now;
       programs.push("CARE");
@@ -57,7 +57,7 @@ export async function POST() {
     }
 
     // CalWORKs
-    if ((student.ep_calworks_status === "confirmed" || student.ep_calworks_status === "conditional") && !student.ep_calworks_email_sent) {
+    if ((student.ep_calworks_status === "confirmed") && !student.ep_calworks_email_sent) {
       const token = await createAcceptToken(student.cwid, "calworks");
       student.ep_calworks_email_sent = now;
       programs.push("CalWORKs");

@@ -154,17 +154,16 @@ export async function getRecentlyAccepted(daysBack: number = 30): Promise<Studen
 }
 
 export async function getEligibleUnsentStudents(): Promise<StudentRecord[]> {
-  // Students who qualify but haven't been emailed yet — idempotency check
+  // Only send emails to students who are 100% CONFIRMED (not conditional)
   const { Items } = await docClient.send(
     new ScanCommand({
       TableName: STUDENTS_TABLE,
       FilterExpression:
-        "((ep_eops_status = :conf OR ep_eops_status = :cond) AND attribute_not_exists(ep_eops_email_sent)) OR " +
-        "((ep_care_status = :conf OR ep_care_status = :cond) AND attribute_not_exists(ep_care_email_sent)) OR " +
-        "((ep_calworks_status = :conf OR ep_calworks_status = :cond) AND attribute_not_exists(ep_calworks_email_sent))",
+        "(ep_eops_status = :conf AND attribute_not_exists(ep_eops_email_sent)) OR " +
+        "(ep_care_status = :conf AND attribute_not_exists(ep_care_email_sent)) OR " +
+        "(ep_calworks_status = :conf AND attribute_not_exists(ep_calworks_email_sent))",
       ExpressionAttributeValues: {
         ":conf": "confirmed",
-        ":cond": "conditional",
       },
     })
   );

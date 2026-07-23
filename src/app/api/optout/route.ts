@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   }
 
   const now = new Date().toISOString();
-  const program = acceptToken.program;
+  const program = acceptToken.program.replace("_optout", "");
   const student = await getStudent(acceptToken.cwid);
 
   if (student) {
