@@ -1052,21 +1052,26 @@
   function fetchAndApplyTracking() {
     fetch("/api/tracking")
       .then(function(r) { return r.json(); })
-      .then(function(data) { applyTracking(data.tracking); })
+      .then(function(data) {
+        console.log("[Tracking] Fetched " + data.tracking.length + " students from DynamoDB");
+        applyTracking(data.tracking);
+      })
       .catch(function(err) { console.log("[Tracking] API not available:", err.message); });
   }
 
   function applyTracking(trackingList) {
+    var updated = 0;
     trackingList.forEach(function(t) {
       var student = T.STUDENTS.filter(function(s) { return s.name === t.name; })[0];
       if (!student) return;
       ["eops","care","calworks","nextup","vrc","dsps","promise","basicneeds"].forEach(function(prog) {
         var status = t.programs[prog];
         if (!status) return;
-        if (status.status === "opted_in") student.decisions[prog] = "accepted";
-        else if (status.status === "opted_out") student.decisions[prog] = "declined";
+        if (status.status === "opted_in") { student.decisions[prog] = "accepted"; updated++; }
+        else if (status.status === "opted_out") { student.decisions[prog] = "declined"; updated++; }
       });
     });
+    console.log("[Tracking] Applied " + updated + " decisions from DynamoDB");
     if (window._refreshAdmin) window._refreshAdmin();
   }
 
