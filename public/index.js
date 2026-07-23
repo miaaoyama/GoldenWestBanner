@@ -1,29 +1,6 @@
-// Backend API URL — same origin (served by Next.js)
+  // Backend API config — same origin when served via Next.js
   window.BACKEND_URL = '';
-  window.CURRENT_STUDENT_CWID = '@30302410'; // Demo student (Kylie Sanchez)
-
-  // Simple status-bar-on-hover behavior, mimicking the browser link preview in the screenshot
-  document.querySelectorAll('a').forEach(function(a){
-    a.addEventListener('mouseenter', function(){
-      var bar = document.getElementById('statusBar');
-      var href = a.getAttribute('href');
-      if(href && href !== '#'){
-        bar.textContent = href;
-        bar.style.display = 'block';
-      }
-    });
-    a.addEventListener('mouseleave', function(){
-      document.getElementById('statusBar').style.display = 'none';
-    });
-  });
-
-  // Add New Task -> simple prompt-based add, purely front-end demo
-  document.getElementById('addTaskBtn').addEventListener('click', function(){
-    var task = prompt('Enter a new task:');
-    if(task){
-      alert('Task added: ' + task + ' (demo only — not saved)');
-    }
-  });
+  window.CURRENT_STUDENT_CWID = '@30302410';
 
   /* ---------------------------------------------------------
      Program eligibility matching — mock data & interactions
@@ -147,17 +124,16 @@
         if(!prog) return;
         prog.decision = action === 'accept' ? 'accepted' : 'optedout';
 
-        // Call backend API to record the decision
-        var apiBase = window.BACKEND_URL || '';
+        // Record decision in backend (DynamoDB + SES email)
         if(action === 'accept'){
-          fetch(apiBase + '/api/send-email', {
+          fetch(window.BACKEND_URL + '/api/send-email', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({cwid: window.CURRENT_STUDENT_CWID || 'demo', program: id})
+            body: JSON.stringify({cwid: window.CURRENT_STUDENT_CWID, program: id})
           }).then(function(r){ return r.json(); }).then(function(data){
             console.log('[API] Opt-in recorded:', data);
           }).catch(function(err){
-            console.log('[API] Backend not available, recorded locally only:', err.message);
+            console.log('[API] Backend unavailable, recorded locally:', err.message);
           });
         }
 

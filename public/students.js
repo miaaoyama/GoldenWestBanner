@@ -1,8 +1,8 @@
 /* ============================================================================
-   Taft College Student Portal — Mock Student Database & Rules Engine
+   Golden West College Student Portal — Mock Student Database & Rules Engine
    ----------------------------------------------------------------------------
    This file is ADDITIVE. It does not modify or remove any existing behavior.
-   It exposes a single global namespace `window.TAFT` that the portal
+   It exposes a single global namespace `window.GoldenValley` that the portal
    extension (data/portal.js) and the existing index.js can read from.
 
    Everything here is FICTIONAL demonstration data. Names, IDs, incomes and
@@ -43,7 +43,7 @@
         "book support on top of your regular financial aid. Students in EOPS transfer and " +
         "complete degrees at noticeably higher rates because someone is tracking their plan " +
         "with them every term. If you qualify, joining is one of the highest-value things " +
-        "you can do at Taft College.",
+        "you can do at Golden West College.",
       // Rules: low-income + educationally disadvantaged + Pell + enrolled full enough
       qualifies: function (s) {
         var econ = s.pellEligible || s.householdIncome <= 45000;
@@ -168,7 +168,7 @@
     },
     {
       id: "promise",
-      name: "Taft College Promise (First-Year Experience)",
+      name: "Golden West College Promise (First-Year Experience)",
       shortName: "Promise",
       funding: "Waives enrollment fees for two years + $300 book credit",
       deadline: "August 1, 2026",
@@ -177,7 +177,7 @@
       career: "Early major/career exploration and mentoring.",
       process: "Automatic for first-time, full-time California residents who file a FAFSA/CADAA.",
       about:
-        "The Taft College Promise removes the enrollment-fee barrier for first-time, full-time " +
+        "The Golden West College Promise removes the enrollment-fee barrier for first-time, full-time " +
         "students in their first two years, and pairs you with a cohort and counselor so you " +
         "start with momentum instead of guesswork.",
       qualifies: function (s) {
