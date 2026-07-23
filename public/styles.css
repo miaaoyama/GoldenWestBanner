@@ -1,16 +1,14 @@
 :root{
     --black:#000000;
-    --primary:#0F603D;
-    --primary-dark:#033F2B;
-    --gold:#FFC522;
-    --gold-dark:#E5B01E;
-    --accent:#BADB3E;
-    --green-mid:#1A9959;
+    --purple:#4b2e83;
+    --gold:#f0b429;
+    --gold-dark:#d99e1f;
+    --maroon:#7a1f2b;
     --text:#1a1a1a;
     --muted:#5f5f5f;
     --border:#e2e2e2;
     --bg:#f4f4f4;
-    --link:#0F603D;
+    --link:#0b57d0;
   }
   *{box-sizing:border-box;}
   body{
@@ -20,14 +18,14 @@
     color:var(--text);
   }
 
-  /* Top dark green header */
+  /* Top black header */
   header.top-bar{
-    background:var(--primary-dark);
+    background:var(--black);
     color:#fff;
     display:flex;
     align-items:center;
     justify-content:space-between;
-    padding:14px 20px;
+    padding:14px 28px;
   }
   .top-bar-left{
     display:flex;
@@ -48,7 +46,7 @@
     width:38px;
     height:38px;
     border-radius:50%;
-    background: radial-gradient(circle at 35% 35%, #FFC522, #0F603D 70%);
+    background: radial-gradient(circle at 35% 35%, #f0b429, #7a1f2b 70%);
     display:flex;
     align-items:center;
     justify-content:center;
@@ -109,8 +107,8 @@
     border-bottom:3px solid transparent;
   }
   .nav-links a.active{
-    color:var(--primary);
-    border-bottom-color:var(--primary);
+    color:var(--link);
+    border-bottom-color:var(--link);
     font-weight:600;
   }
   .view-all{
@@ -133,8 +131,7 @@
   }
   .grid{
     display:grid;
-    grid-template-columns:minmax(320px, 420px);
-    justify-content:center;
+    grid-template-columns:repeat(4, 1fr);
     gap:24px;
   }
   .card{
@@ -164,6 +161,38 @@
   }
   .card-icons span{cursor:pointer;}
 
+  /* Banner 9 hero blocks */
+  .banner-hero{
+    background:#eeeeee;
+    margin:0 20px;
+    border-top:5px solid var(--gold);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:28px 0 22px;
+  }
+  .banner-circle{
+    width:150px;
+    height:150px;
+    border-radius:50%;
+    background:var(--purple);
+    color:#fff;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    line-height:1;
+  }
+  .banner-circle .label{
+    font-size:22px;
+    font-weight:400;
+  }
+  .banner-circle .num{
+    font-size:56px;
+    font-weight:700;
+  }
   .card-cta{
     margin:18px 20px 0;
   }
@@ -187,6 +216,277 @@
     color:var(--muted);
     font-size:14px;
     margin:14px 20px 20px;
+  }
+
+  /* Link list card (View My Info) */
+  .link-list{
+    list-style:none;
+    margin:0;
+    padding:0 20px;
+    flex:1;
+  }
+  .link-list li{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:14px 0;
+    border-bottom:1px solid var(--border);
+  }
+  .link-list li:last-child{border-bottom:none;}
+  .link-list .icon{
+    width:20px;
+    text-align:center;
+    color:var(--gold-dark);
+    font-size:16px;
+    flex-shrink:0;
+  }
+  .link-list a{
+    color:var(--link);
+    text-decoration:none;
+    font-size:15px;
+  }
+  .link-list a:hover{text-decoration:underline;}
+
+  /* Canvas card */
+  .canvas-body{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    padding:30px 20px 40px;
+    gap:6px;
+  }
+  .canvas-logo-mark{
+    width:150px;
+    height:150px;
+    border-radius:50%;
+    position:relative;
+    background:
+      radial-gradient(circle at 50% 8%, #e13a2e 6px, transparent 7px),
+      radial-gradient(circle at 75% 15%, #e13a2e 6px, transparent 7px),
+      radial-gradient(circle at 90% 35%, #e13a2e 6px, transparent 7px),
+      radial-gradient(circle at 90% 65%, #e13a2e 6px, transparent 7px),
+      radial-gradient(circle at 75% 85%, #e13a2e 6px, transparent 7px),
+      radial-gradient(circle at 50% 92%, #e13a2e 6px, transparent 7px),
+      radial-gradient(circle at 25% 85%, #e13a2e 6px, transparent 7px),
+      radial-gradient(circle at 10% 65%, #e13a2e 6px, transparent 7px),
+      radial-gradient(circle at 10% 35%, #e13a2e 6px, transparent 7px),
+      radial-gradient(circle at 25% 15%, #e13a2e 6px, transparent 7px);
+  }
+  .canvas-logo-mark::before{
+    content:"";
+    position:absolute;
+    inset:28px;
+    border-radius:50%;
+    background:
+      conic-gradient(#e13a2e 0deg 80deg, transparent 80deg 100deg,
+                      #e13a2e 100deg 180deg, transparent 180deg 200deg,
+                      #e13a2e 200deg 280deg, transparent 280deg 300deg,
+                      #e13a2e 300deg 360deg);
+  }
+  .canvas-wordmark{
+    font-size:34px;
+    font-weight:800;
+    color:#e13a2e;
+    letter-spacing:1px;
+    margin-top:8px;
+  }
+  .canvas-sub{
+    font-size:13px;
+    letter-spacing:3px;
+    color:#555;
+    font-weight:600;
+  }
+
+  /* Online Payments card */
+  .payments-list{
+    list-style:none;
+    margin:0;
+    padding:6px 20px 20px;
+  }
+  .payments-list li{
+    display:flex;
+    gap:14px;
+    padding:16px 0;
+    border-bottom:1px solid var(--border);
+  }
+  .payments-list li:last-child{border-bottom:none;}
+  .payments-list .icon{
+    color:var(--gold-dark);
+    font-size:20px;
+    margin-top:2px;
+    flex-shrink:0;
+    width:22px;
+    text-align:center;
+  }
+  .payments-list .title a{
+    color:var(--link);
+    text-decoration:none;
+    font-size:15px;
+    font-weight:600;
+  }
+  .payments-list .title a:hover{text-decoration:underline;}
+  .payments-list .desc{
+    color:var(--muted);
+    font-size:13px;
+    margin-top:2px;
+  }
+
+  /* Student Email card */
+  .email-banner{
+    background:var(--gold);
+    color:#1a1a1a;
+    font-weight:700;
+    text-align:center;
+    padding:14px 20px;
+    font-size:16px;
+  }
+  .email-body{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+    padding:26px 24px 22px;
+    gap:14px;
+  }
+  .email-body .provided{
+    font-size:14px;
+  }
+  .email-body .provided b{font-weight:700;}
+  .email-body .addr{
+    color:#333;
+  }
+  .email-body .help{
+    font-size:14px;
+    margin-top:6px;
+  }
+  .email-body .help b{font-weight:700;}
+  .email-body a{
+    color:var(--link);
+    text-decoration:none;
+  }
+  .email-body a:hover{text-decoration:underline;}
+  .btn-outlook{
+    background:var(--gold);
+    border:none;
+    padding:12px 34px;
+    font-weight:700;
+    font-size:15px;
+    color:#1a1a1a;
+    cursor:pointer;
+    border-radius:2px;
+  }
+  .btn-outlook:hover{background:var(--gold-dark);}
+
+  /* Student Services card */
+  .three-btn-row{
+    display:flex;
+    gap:10px;
+    padding:0 20px;
+    margin-top:16px;
+  }
+  .three-btn-row .btn-gold{
+    font-size:14px;
+    padding:14px 4px;
+  }
+
+  /* Degree Works card */
+  .dw-body{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    padding:24px 20px 34px;
+  }
+  .dw-mark{
+    width:150px;
+    height:150px;
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .dw-mark .gear{
+    position:absolute;
+    border:10px solid var(--maroon);
+    border-radius:50%;
+  }
+  .dw-mark .gear.g1{
+    width:95px;height:95px;
+    top:0; left:0;
+    opacity:0.5;
+  }
+  .dw-mark .gear.g2{
+    width:110px;height:110px;
+    bottom:0; right:0;
+    opacity:0.85;
+  }
+  .dw-mark .cap{
+    position:relative;
+    font-size:56px;
+  }
+  .dw-word{
+    font-size:26px;
+    color:#8a8a8a;
+    font-weight:600;
+    margin-top:12px;
+  }
+
+  /* To-Do List card */
+  .todo-body{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+    padding:36px 24px 8px;
+    gap:8px;
+  }
+  .todo-check{
+    font-size:34px;
+    color:var(--link);
+  }
+  .todo-body h3{
+    margin:4px 0 0;
+    font-size:17px;
+    font-weight:400;
+  }
+  .todo-body p{
+    margin:0;
+    color:var(--muted);
+    font-size:13px;
+  }
+  .btn-outline{
+    margin:20px 20px 22px;
+    border:1.5px solid var(--link);
+    color:var(--link);
+    background:#fff;
+    padding:13px 0;
+    font-weight:700;
+    letter-spacing:0.5px;
+    text-align:center;
+    border-radius:2px;
+    cursor:pointer;
+  }
+  .btn-outline:hover{background:#eef3ff;}
+
+  /* Saved Links card */
+  .saved-links-body{
+    flex:1;
+    padding:10px 20px 20px;
+  }
+  .saved-link-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:12px 0;
+    font-size:14px;
+    color:var(--link);
+    text-decoration:none;
+    border-bottom:1px solid var(--border);
   }
 
   /* Notification bell + panel */
@@ -290,7 +590,7 @@
     overflow:hidden;
   }
   .modal-head{
-    background:var(--primary);
+    background:var(--purple);
     color:#fff;
     padding:22px 26px;
   }
@@ -425,7 +725,7 @@
   }
 
   @media (max-width:1200px){
-    .grid{grid-template-columns:1fr;}
+    .grid{grid-template-columns:repeat(2,1fr);}
   }
   @media (max-width:700px){
     .grid{grid-template-columns:1fr;}
@@ -437,7 +737,7 @@
    PORTAL EXTENSION STYLES  (additive — appended below original stylesheet)
    Features: slide-in notification toast, confetti, enhanced program modal,
    program decisions, admin dashboard, analytics, readable document modals.
-   Reuses existing tokens: --primary --gold --gold-dark --primary-dark --link etc.
+   Reuses existing tokens: --purple --gold --gold-dark --maroon --link etc.
    ========================================================================== */
 
 /* ---- 1. Slide-in qualification toast (Feature 1) ---------------------- */
@@ -447,7 +747,7 @@
   right:24px;
   width:360px;
   max-width:calc(100vw - 32px);
-  background:linear-gradient(135deg, rgba(15,96,61,0.96), rgba(3,63,43,0.94));
+  background:linear-gradient(135deg, rgba(75,46,131,0.96), rgba(122,31,43,0.94));
   color:#fff;
   border:1px solid rgba(255,255,255,0.25);
   border-radius:14px;
@@ -535,29 +835,29 @@
 .whatis-panel{
   max-height:0; overflow:hidden;
   transition:max-height .35s ease;
-  background:#f0f9f4;
-  border-left:3px solid var(--primary);
+  background:#faf7ff;
+  border-left:3px solid var(--purple);
   border-radius:0 6px 6px 0;
   margin-top:8px;
 }
 .whatis-panel .whatis-inner{ padding:12px 14px; font-size:13px; line-height:1.55; color:#333; }
 
 .prog-actions .btn-maybe{
-  background:#fff; color:var(--primary);
-  border:1.5px solid var(--primary);
+  background:#fff; color:var(--purple);
+  border:1.5px solid var(--purple);
   padding:9px 18px; font-size:13px; font-weight:700;
   border-radius:3px; cursor:pointer;
 }
-.prog-actions .btn-maybe:hover{ background:#e6f5ec; }
+.prog-actions .btn-maybe:hover{ background:#f2ecfb; }
 .btn-decline{
-  background:#fff; color:var(--primary-dark);
-  border:1.5px solid var(--primary-dark);
+  background:#fff; color:var(--maroon);
+  border:1.5px solid var(--maroon);
   padding:9px 18px; font-size:13px; font-weight:700;
   border-radius:3px; cursor:pointer;
 }
-.btn-decline:hover{ background:#fef5e6; }
+.btn-decline:hover{ background:#fbeef0; }
 .decision-tag.maybe{ color:var(--gold-dark); }
-.decision-tag.declined{ color:var(--primary-dark); }
+.decision-tag.declined{ color:var(--maroon); }
 .decision-reset{
   background:none;border:none;color:var(--link);
   font-size:12px;cursor:pointer;margin-left:8px;text-decoration:underline;
@@ -572,19 +872,26 @@
   cursor:pointer;
 }
 .admin-toggle:hover{ background:var(--gold-dark); }
-.admin-toggle.active{ background:#fff; color:var(--primary); outline:2px solid var(--primary); }
+.admin-toggle.active{ background:#fff; color:var(--purple); outline:2px solid var(--purple); }
 
-.admin-panel{ display:block; }
+.admin-panel{ display:none; }
 .admin-panel.open{ display:block; }
 .admin-wrap{
-  max-width:1500px; margin:0 auto; padding:24px 28px 40px;
+  max-width:1500px; margin:0 auto; padding:0 28px 40px;
 }
 .admin-head{
   display:flex; align-items:center; justify-content:space-between;
   flex-wrap:wrap; gap:14px; margin:8px 0 20px;
 }
-.admin-head h1{ font-size:24px; margin:0; color:var(--primary); }
+.admin-head h1{ font-size:24px; margin:0; color:var(--purple); }
 .admin-head .sub{ color:var(--muted); font-size:14px; margin-top:2px; }
+.student-picker{ display:flex; align-items:center; gap:10px; }
+.student-picker label{ font-size:13px; font-weight:700; color:#444; }
+.student-picker select{
+  padding:9px 12px; font-size:14px;
+  border:1px solid var(--border); border-radius:6px; background:#fff; min-width:240px;
+}
+
 /* Analytics cards */
 .analytics-grid{
   display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
@@ -596,7 +903,7 @@
   transition:transform .2s ease, box-shadow .2s ease;
 }
 .metric-card:hover{ transform:translateY(-3px); box-shadow:0 10px 24px rgba(0,0,0,0.1); }
-.metric-card .m-value{ font-size:30px; font-weight:800; color:var(--primary); line-height:1; }
+.metric-card .m-value{ font-size:30px; font-weight:800; color:var(--purple); line-height:1; }
 .metric-card .m-label{ font-size:12.5px; color:var(--muted); margin-top:6px; text-transform:uppercase; letter-spacing:.4px; }
 .metric-card .m-foot{ font-size:12px; color:#1e8e3e; margin-top:6px; font-weight:600; }
 
@@ -611,7 +918,7 @@
 .bar-track{ flex:1; background:#f0f0f0; border-radius:6px; height:22px; overflow:hidden; }
 .bar-fill{
   height:100%; border-radius:6px;
-  background:linear-gradient(90deg, var(--primary), var(--primary-dark));
+  background:linear-gradient(90deg, var(--purple), var(--maroon));
   width:0; transition:width .9s cubic-bezier(.16,.84,.44,1);
   display:flex; align-items:center; justify-content:flex-end;
   color:#fff; font-size:11px; font-weight:700; padding-right:8px;
@@ -621,136 +928,28 @@
 /* Admin student table */
 .admin-table-card{
   background:#fff; border:1px solid var(--border); border-radius:10px;
-  overflow:visible; box-shadow:0 2px 8px rgba(0,0,0,0.04); 
-}
-
-/* ---- Program filter dropdown (custom, animated) ----------------------- */
-.program-filter-bar{
-  display:flex;
-  align-items:center;
-  gap:12px;
-  padding:12px 20px;
-  border-bottom:1px solid var(--border);
-  background:#fbfaff;
-}
-.program-filter-bar .pf-label{
-  font-size:13px;
-  font-weight:700;
-  color:#444;
-}
-.program-filter{
-  position:relative;
-  min-width:240px;
-}
-.pf-trigger{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  width:100%;
-  padding:9px 12px;
-  font-size:14px;
-  font-weight:600;
-  color:var(--text);
-  background:#fff;
-  border:1px solid var(--border);
-  border-radius:6px;
-  cursor:pointer;
-  text-align:left;
-}
-.pf-trigger:hover{ border-color:var(--primary); }
-.pf-trigger:focus-visible{ outline:2px solid var(--primary); outline-offset:2px; }
-.pf-chevron{
-  font-size:12px;
-  color:var(--muted);
-  transition:transform 0.25s ease-in-out;
-  flex-shrink:0;
-}
-.program-filter.open .pf-chevron{ transform:rotate(180deg); }
-
-.pf-listbox{
-  position:absolute;
-  top:calc(100% + 4px);
-  left:0;
-  right:0;
-  margin:0;
-  padding:0;
-  list-style:none;
-  background:#fff;
-  border:1px solid var(--border);
-  border-radius:6px;
-  box-shadow:0 8px 24px rgba(0,0,0,0.14);
-  z-index:40;
-  max-height:0;
-  opacity:0;
-  overflow:hidden;
-  transition:max-height 0.25s ease-in-out, opacity 0.25s ease-in-out;
-}
-.program-filter.open .pf-listbox{
-  max-height:20rem;
-  opacity:1;
-  overflow-y:auto;
-}
-.pf-option{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  padding:9px 12px;
-  font-size:13.5px;
-  color:var(--text);
-  cursor:pointer;
-}
-.pf-option:hover,
-.pf-option.pf-active{ background:#eef8f2; }
-.pf-option[aria-selected="true"]{
-  font-weight:700;
-  color:var(--primary);
-}
-.pf-option[aria-selected="true"]::before{
-  content:"\2713";          /* checkmark on the selected option */
-  font-weight:800;
-}
-.pf-option:not([aria-selected="true"])::before{
-  content:"";
-  width:0.75em;              /* keep labels aligned with the checked row */
-  display:inline-block;
+  overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.04);
 }
 .admin-table{ width:100%; border-collapse:collapse; font-size:13.5px; }
-.admin-table th, .admin-table td{ padding:11px 14px; text-align:left; border-bottom:1px solid var(--border); overflow:visible; }
-.admin-table th{ background:var(--primary); color:#fff; font-size:12px; text-transform:uppercase; letter-spacing:.4px; }
-.admin-table tr:hover td{ background:#eef8f2; }
+.admin-table th, .admin-table td{ padding:11px 14px; text-align:left; border-bottom:1px solid var(--border); }
+.admin-table th{ background:var(--purple); color:#fff; font-size:12px; text-transform:uppercase; letter-spacing:.4px; }
+.admin-table tr:hover td{ background:#faf7ff; }
 .admin-table .plevel{
   display:inline-block; min-width:22px; text-align:center;
   padding:2px 8px; border-radius:10px; font-weight:800; font-size:12px; color:#fff;
 }
-.plevel.l1{ background:#033F2B; } .plevel.l2{ background:#0F603D; }
-.plevel.l3{ background:#1A9959; } .plevel.l4{ background:#BADB3E; color:#1a1a1a; }
+.plevel.l1{ background:#7a1f2b; } .plevel.l2{ background:#b5432b; }
+.plevel.l3{ background:#d99e1f; } .plevel.l4{ background:#6a8f3c; }
 .plevel.l5{ background:#8a8a8a; }
-.admin-table .row-actions{
-  display:flex;
-  flex-direction:column;
-  align-items:stretch;
-  gap:1px;
-}
 .admin-table .row-actions button{
-  background:var(--link); color:#fff;
-  border:1px solid transparent;
-  border-radius:4px;
-  padding:6px 12px;
-  font-size:12px; font-weight:700; line-height:1.2;
-  cursor:pointer;
-  margin:4px 0;
-  vertical-align:middle;
-  white-space:nowrap;
+  background:var(--link); color:#fff; border:none; border-radius:4px;
+  padding:6px 10px; font-size:12px; font-weight:700; cursor:pointer; margin-right:6px;
 }
-.admin-table .row-actions button.ghost{
-  background:#fff; color:var(--link);
-  border:1px solid var(--link);
-}
+.admin-table .row-actions button.ghost{ background:#fff; color:var(--link); border:1px solid var(--link); }
 
 /* Priority reason chips */
 .p-reasons{ display:flex; flex-wrap:wrap; gap:5px; }
-.p-chip{ background:#e6f5ec; color:var(--primary); font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; }
+.p-chip{ background:#eef; color:var(--purple); font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; }
 
 /* ---- 5. Readable document modal (Feature 10) -------------------------- */
 .doc-overlay{
@@ -769,29 +968,29 @@
 }
 .doc-toolbar .doc-title{ font-size:14px; font-weight:700; }
 .doc-toolbar .doc-actions button{
-  background:#0F603D; color:#fff; border:none; border-radius:4px;
+  background:#4b2e83; color:#fff; border:none; border-radius:4px;
   padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer; margin-left:8px;
 }
-.doc-toolbar .doc-actions button.close{ background:#033F2B; }
+.doc-toolbar .doc-actions button.close{ background:#7a1f2b; }
 .doc-sheet{
   padding:34px 40px; max-height:72vh; overflow-y:auto;
   font-family:"Georgia", "Times New Roman", serif; color:#1a1a1a;
 }
 .doc-sheet .doc-letterhead{
   display:flex; align-items:center; gap:14px;
-  border-bottom:3px solid var(--primary); padding-bottom:14px; margin-bottom:18px;
+  border-bottom:3px solid var(--purple); padding-bottom:14px; margin-bottom:18px;
 }
 .doc-sheet .doc-seal{
   width:52px; height:52px; border-radius:50%;
-  background:radial-gradient(circle at 35% 35%, var(--gold), var(--primary-dark) 70%);
+  background:radial-gradient(circle at 35% 35%, var(--gold), var(--maroon) 70%);
   color:#fff; display:flex; align-items:center; justify-content:center;
   font-weight:800; font-family:Arial, sans-serif; flex-shrink:0;
 }
-.doc-sheet .doc-org{ font-size:20px; font-weight:800; color:var(--primary); font-family:Arial, sans-serif; }
+.doc-sheet .doc-org{ font-size:20px; font-weight:800; color:var(--purple); font-family:Arial, sans-serif; }
 .doc-sheet .doc-org small{ display:block; font-size:12px; color:var(--muted); font-weight:600; letter-spacing:.5px; }
 .doc-sheet h2.doc-h{
   font-family:Arial, sans-serif; font-size:16px; text-transform:uppercase;
-  letter-spacing:1px; color:var(--primary-dark); margin:22px 0 10px; border-bottom:1px solid var(--border); padding-bottom:6px;
+  letter-spacing:1px; color:var(--maroon); margin:22px 0 10px; border-bottom:1px solid var(--border); padding-bottom:6px;
 }
 .doc-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px 26px; font-size:14px; }
 .doc-grid .dg-row{ display:flex; justify-content:space-between; border-bottom:1px dotted #ccc; padding:5px 0; }
@@ -805,341 +1004,20 @@
 }
 .doc-stamp.pending{ border-color:var(--gold-dark); color:var(--gold-dark); }
 
+/* priority pill shown on the student home hero */
+.student-context-bar{
+  max-width:1500px; margin:0 auto; padding:10px 28px 0;
+  display:none; align-items:center; gap:12px; flex-wrap:wrap;
+}
+.student-context-bar.show{ display:flex; }
+.scb-chip{
+  background:#fff; border:1px solid var(--border); border-radius:20px;
+  padding:6px 14px; font-size:13px; font-weight:700; color:var(--purple);
+}
+.scb-chip .sub{ color:var(--muted); font-weight:400; }
+
 @media (max-width:700px){
   .doc-grid{ grid-template-columns:1fr; }
   .prog-meta{ grid-template-columns:1fr; }
   .qual-toast{ top:70px; }
-}
-
-/* ---- Eligibility tabs above the roster --------------------------------- */
-.roster-tabs{
-  display:flex;
-  gap:0;
-  border-bottom:2px solid var(--border);
-  background:#f7f4ff;
-  padding:0 20px;
-}
-.roster-tab{
-  position:relative;
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  padding:14px 22px 12px;
-  border:none;
-  background:transparent;
-  cursor:pointer;
-  font-size:14px;
-  font-weight:600;
-  color:var(--muted);
-  letter-spacing:.2px;
-  border-bottom:3px solid transparent;
-  margin-bottom:-2px;
-  transition:color .15s, border-color .15s;
-  white-space:nowrap;
-}
-.roster-tab img{
-  vertical-align:middle;
-}
-.roster-tab:hover{
-  color:var(--purple);
-  background:#ede8ff;
-}
-.roster-tab.active{
-  color:var(--purple);
-  border-bottom-color:var(--purple);
-  background:#fff;
-}
-.tab-count{
-  display:inline-block;
-  margin-left:8px;
-  background:var(--purple);
-  color:#fff;
-  font-size:11px;
-  font-weight:800;
-  padding:1px 8px;
-  border-radius:999px;
-  vertical-align:middle;
-  min-width:24px;
-  text-align:center;
-}
-.roster-tab:not(.active) .tab-count{
-  background:#bbb;
-}
-
-/* ---- Status symbols in the admin roster table ------------------------- */
-.roster-status {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  font-weight: 900;
-  font-size: 18px;
-  line-height: 1;
-}
-.status-accepted { background: #e6f4ea; color: #1e8e3e; border: 2px solid #1e8e3e; }
-.status-declined { background: #fce8e6; color: #c5221f; border: 2px solid #c5221f; }
-.status-pending  { background: #fdf1d8; color: #b06a00; border: 2px solid #f0c040; font-size:16px; }
-.status-none     { background: #f0f0f0; color: #999; border: 2px solid #ccc; }
-
-/* ---- Programs dropdown in admin roster -------------------------------- */
-.prog-dropdown { margin-top: 6px; position: relative; }
-.prog-dropdown summary {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--purple);
-  background: #f0eafa;
-  border: 1px solid #c9b8ef;
-  border-radius: 5px;
-  padding: 4px 10px;
-  cursor: pointer;
-  list-style: none;
-   min-width: 115px;
-  user-select: none;
-}
-.prog-dropdown summary::-webkit-details-marker { display: none; }
-.prog-dropdown summary::before {
-  content: "\25B8";
-  display: inline-block;
-  transition: transform 0.25s ease;
-}
-.prog-dropdown[open] summary::before {
-  transform: rotate(90deg);
-}
-.prog-dropdown[open] summary { background: #e3d6f7; border-radius: 5px 5px 0 0; }
-.spl-list {
-  list-style: none;
-  margin: 0;
-  padding: 8px 10px;
-  border: 1px solid #c9b8ef;
-  border-top: none;
-  border-radius: 0 0 5px 5px;
-  background: #fff;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 220px;
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: 20;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-}
-.spl-item { display: flex; flex-direction: column; gap: 3px; }
-.spl-row  { display: flex; align-items: center; gap: 7px; }
-.spl-empty{ font-size:12px; color:var(--muted); padding:4px 0; }
-.spl-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  font-size: 13px;
-  font-weight: 900;
-  flex-shrink: 0;
-  line-height: 1;
-}
-.spl-accepted     { background: #e6f4ea; color: #1e8e3e; border: 1.5px solid #1e8e3e; }
-.spl-declined     { background: #fce8e6; color: #c5221f; border: 1.5px solid #c5221f; font-size:15px; }
-.spl-pending-img  { background: #fdf1d8; color: #b06a00; border: 1.5px solid #f0c040; }
-.spl-name         { font-size: 12px; font-weight: 600; color: #333; flex: 1; }
-.spl-status       { font-size: 11px; font-style: italic; }
-.spl-label-accepted { color: #1e8e3e; }
-.spl-label-declined { color: #c5221f; }
-.spl-label-pending  { color: #888; }
-.spl-almost-detail {
-  display: flex; flex-direction: column; gap: 3px; padding-left: 27px;
-}
-.spl-almost-badge {
-  display: inline-block; font-size: 10px; font-weight: 700;
-  background: #fdf1d8; color: #b06a00; border-radius: 8px;
-  padding: 1px 6px; text-transform: uppercase; letter-spacing: 0.3px;
-}
-.spl-missing {
-  font-size: 11px; color: #7a4f00; background: #fff8e1;
-  border: 1px solid #f0c040; border-radius: 4px; padding: 2px 7px; line-height: 1.5;
-}
-.spl-email-flag {
-  font-size: 11px; font-weight: 700; color: #0b57d0;
-  background: #e8f0fe; border: 1px solid #aac4f5;
-  border-radius: 4px; padding: 2px 7px; white-space: nowrap;
-}
-
-/* ==========================================================================
-   RESPONSIVE LAYER  (appended — wins over earlier rules of equal specificity)
-   Mobile-first breakpoints:
-     Mobile ............. max-width: 480px
-     Large mobile ....... 481px – 767px
-     Tablet ............. 768px – 1024px
-     Desktop ............ min-width: 1025px
-   Fixed pixel sizes on containers / cards / text are re-expressed with
-   rem, %, vw and clamp() so the layout scales fluidly between breakpoints.
-   ========================================================================== */
-
-/* ---- Fluid sizing (applies at every width) ---------------------------- */
-.brand-text{ font-size:clamp(1rem, 2.4vw, 1.375rem); }
-.admin-wrap{ padding: clamp(1rem, 3vw, 1.5rem) clamp(1rem, 4vw, 1.75rem) 2.5rem; }
-.admin-head h1{ font-size:clamp(1.25rem, 3.5vw, 1.5rem); }
-.metric-card .m-value{ font-size:clamp(1.5rem, 4vw, 1.875rem); }
-.chart-card{ padding: clamp(1rem, 3vw, 1.375rem) clamp(1rem, 3vw, 1.375rem); }
-
-/* Hide the leftover decorative top-bar glyph — the nav toggle below is the
-   only hamburger, and it shows on the left of the nav in responsive view only. */
-.top-bar .hamburger{ display:none; }
-
-/* ---- Hamburger toggle button (hidden on desktop) ---------------------- */
-.main-nav{ position:relative; }
-.nav-menu{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  flex:1 1 auto;
-  gap:1.5rem;
-}
-.nav-backdrop{ display:none; }        /* only used below the tablet breakpoint */
-.nav-toggle{
-  display:none;                        /* desktop: full nav links are shown instead */
-  align-items:center;
-  justify-content:center;
-  background:transparent;
-  border:none;
-  padding:0.625rem;
-  margin:0;
-  cursor:pointer;
-  -webkit-appearance:none;
-}
-.nav-toggle:focus-visible{ outline:2px solid var(--primary); outline-offset:2px; border-radius:4px; }
-.nav-toggle-box{ position:relative; display:block; width:24px; height:18px; }
-.nav-toggle-bar{
-  position:absolute; left:0;
-  width:100%; height:2px; border-radius:2px;
-  background:#333;
-  transition:transform 0.3s ease-in-out, opacity 0.3s ease-in-out, top 0.3s ease-in-out;
-}
-.nav-toggle-bar:nth-child(1){ top:0; }
-.nav-toggle-bar:nth-child(2){ top:8px; }
-.nav-toggle-bar:nth-child(3){ top:16px; }
-/* 3-line → X animation when the menu is open */
-.main-nav.open .nav-toggle-bar:nth-child(1){ top:8px; transform:rotate(45deg); }
-.main-nav.open .nav-toggle-bar:nth-child(2){ opacity:0; }
-.main-nav.open .nav-toggle-bar:nth-child(3){ top:8px; transform:rotate(-45deg); }
-
-/* ==========================================================================
-   TABLET AND BELOW  (max-width: 1024px) — nav collapses to a hamburger
-   ========================================================================== */
-@media (max-width:1024px){
-  html, body{ overflow-x:hidden; }          /* guard against the off-canvas panel adding scroll */
-  body.nav-open{ overflow:hidden; }          /* lock background scroll while the menu is open */
-
-  .main-nav{
-    padding:0 clamp(1rem, 4vw, 1.75rem);
-    min-height:52px;
-    justify-content:flex-start;
-  }
-  .nav-toggle{ display:inline-flex; }
-
-  /* Slide-in off-canvas menu */
-  .nav-menu{
-    position:fixed;
-    top:0; left:0; bottom:0;
-    width:min(82vw, 320px);
-    flex-direction:column;
-    align-items:stretch;
-    justify-content:flex-start;
-    gap:0;
-    background:#fff;
-    box-shadow:2px 0 24px rgba(0,0,0,0.18);
-    padding:4.5rem 0 1.5rem;
-    transform:translateX(-100%);
-    opacity:0;
-    transition:transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
-    z-index:70;
-    overflow-y:auto;
-  }
-  .main-nav.open .nav-menu{ transform:translateX(0); opacity:1; }
-
-  .nav-links{
-    flex-direction:column;
-    gap:0;
-    width:100%;
-  }
-  .nav-links a{
-    padding:0.875rem 1.375rem;
-    font-size:1rem;
-    border-bottom:1px solid var(--border);
-    border-left:3px solid transparent;
-  }
-  .nav-links a.active{
-    border-bottom-color:var(--border);
-    border-left-color:var(--primary);
-    background:#f4faf6;
-  }
-  .view-all{ padding:1rem 1.375rem; }
-
-  /* Dimmed backdrop that closes the menu when clicked (handled in JS) */
-  .nav-backdrop{
-    display:block;
-    position:fixed; inset:0;
-    background:rgba(0,0,0,0.4);
-    opacity:0;
-    pointer-events:none;
-    z-index:65;
-    transition:opacity 0.3s ease-in-out;
-  }
-  .main-nav.open .nav-backdrop{ opacity:1; pointer-events:auto; }
-
-  /* Dense 8-column roster scrolls horizontally inside its card instead of
-     overflowing the page (which would clip content / add page-level scroll) */
-  .admin-table-card{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
-  .admin-table{ min-width:44rem; }
-  .roster-tabs{ overflow-x:auto; }
-  .roster-tab{ padding:14px clamp(12px, 3vw, 22px) 12px; }
-
-  /* --- Program-interest bar chart on small screens -------------------- */
-  /* Shrink the label so the track keeps room; the percentage now sits in a
-     dedicated column to the right of the bar (see .bar-count), so it is never
-     clipped and the fill width stays strictly proportional to the value. */
-  .bar-row .bar-label{ width:clamp(5.25rem, 26vw, 190px); font-size:clamp(0.6875rem, 3vw, 0.8125rem); }
-  .bar-row .bar-count{ width:3rem; text-align:right; font-size:0.8125rem; }
-}
-
-/* ==========================================================================
-   TABLET RANGE  (768px – 1024px)
-   ========================================================================== */
-@media (min-width:768px) and (max-width:1024px){
-  .analytics-grid{ grid-template-columns:repeat(auto-fit, minmax(11rem, 1fr)); }
-}
-
-/* ==========================================================================
-   LARGE MOBILE / SMALL TABLET  (481px – 767px)
-   ========================================================================== */
-@media (min-width:481px) and (max-width:767px){
-  .analytics-grid{ grid-template-columns:repeat(auto-fit, minmax(9rem, 1fr)); }
-  .metric-card{ padding:1rem 1rem 0.875rem; }
-}
-
-/* ==========================================================================
-   MOBILE  (max-width: 480px)
-   ========================================================================== */
-@media (max-width:480px){
-  header.top-bar{ padding:0.75rem 1rem; }
-  .top-bar-left{ gap:0.625rem; }
-
-  .analytics-grid{ grid-template-columns:1fr; gap:0.75rem; }
-  .metric-card{ padding:1rem 1rem 0.875rem; }
-
-  /* Keep metric percentages / numbers from being clipped in tight cards */
-  .metric-card .m-value{ white-space:nowrap; }
-  .elig-summary{ flex-wrap:wrap; gap:0.75rem; }
-
-  .admin-table{ min-width:38rem; font-size:0.8125rem; }
-  .doc-sheet{ padding:1.5rem 1.25rem; }
-  .doc-grid{ grid-template-columns:1fr; }
-
-  .qual-toast{ right:0.75rem; left:0.75rem; width:auto; }
 }

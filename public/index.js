@@ -1,7 +1,3 @@
-  // Backend API — same origin when served via Next.js
-  window.BACKEND_URL = '';
-  window.CURRENT_STUDENT_CWID = '@30302410';
-
   /* ---------------------------------------------------------
      Program eligibility matching — mock data & interactions
      (Illustrates the "automated eligibility matching + proactive
@@ -123,19 +119,6 @@
         var prog = programs.filter(function(p){ return p.id === id; })[0];
         if(!prog) return;
         prog.decision = action === 'accept' ? 'accepted' : 'optedout';
-
-        // Record in backend (DynamoDB + send email via SES)
-        if(action === 'accept'){
-          fetch(window.BACKEND_URL + '/api/send-emails-batch', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'}
-          }).then(function(r){ return r.json(); }).then(function(data){
-            console.log('[API] Opt-in recorded, emails sent:', data);
-          }).catch(function(err){
-            console.log('[API] Backend not available:', err.message);
-          });
-        }
-
         renderEligibility();
       });
     });
@@ -181,3 +164,56 @@
 
   // initialize summary counts on load
   renderEligibility();
+
+  (function () {
+    var nav = document.getElementById('mainNav');
+    var toggle = document.getElementById('navToggle');
+    var menu = document.getElementById('navMenu');
+    var backdrop = document.getElementById('navBackdrop');
+    if (!nav || !toggle || !menu) return;
+
+    function isOpen() { return nav.classList.contains('open'); }
+
+    function openMenu() {
+      nav.classList.add('open');
+      toggle.setAttribute('aria-expanded', 'true');
+      document.body.classList.add('nav-open');
+    }
+
+    function closeMenu(returnFocus) {
+      nav.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+      document.body.classList.remove('nav-open');
+      if (returnFocus) toggle.focus();
+    }
+
+    toggle.addEventListener('click', function (e) {
+      e.stopPropagation();
+      isOpen() ? closeMenu() : openMenu();
+    });
+
+    // Close when a nav link is clicked
+    menu.addEventListener('click', function (e) {
+      if (e.target.closest('a')) closeMenu();
+    });
+
+    // Close when the dimmed backdrop (outside the menu) is clicked
+    if (backdrop) backdrop.addEventListener('click', function () { closeMenu(); });
+
+    // Close when clicking anywhere outside the open menu
+    document.addEventListener('click', function (e) {
+      if (isOpen() && !menu.contains(e.target) && !toggle.contains(e.target)) {
+        closeMenu();
+      }
+    });
+
+    // Close on Escape and return focus to the toggle
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && isOpen()) closeMenu(true);
+    });
+
+    // If the viewport grows back to desktop, reset the menu state
+    window.addEventListener('resize', function () {
+      if (window.innerWidth > 1024 && isOpen()) closeMenu();
+    });
+  })();

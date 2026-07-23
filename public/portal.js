@@ -71,6 +71,7 @@
 
     // Program Matches summary card counts
     if ($("qualifiedCount")) $("qualifiedCount").textContent = m.qualified.length;
+    if ($("almostCount")) $("almostCount").textContent = m.almost.length;
     if ($("notCount")) $("notCount").textContent = m.not.length;
 
     // Header avatar initial
@@ -171,14 +172,16 @@
     if (!body) return;
 
     var html = "";
-    html += '<div class="modal-section-title qualified">You qualify for <span class="count-pill">' + m.qualified.length + "</span></div>";
+    html += '<div class="modal-section-title qualified">You currently qualify for <span class="count-pill">' + m.qualified.length + "</span></div>";
     if (m.qualified.length) m.qualified.forEach(function (p) { html += progCardHtml(p); });
     else html += '<div class="prog-reason">No current qualifications on file.</div>';
 
-    if (m.almost.length) {
-      html += '<div class="modal-section-title almost">Needs action to complete <span class="count-pill">' + m.almost.length + "</span></div>";
-      m.almost.forEach(function (p) { html += progCardHtml(p); });
-    }
+    html += '<div class="modal-section-title almost">You almost qualify for <span class="count-pill">' + m.almost.length + "</span></div>";
+    if (m.almost.length) m.almost.forEach(function (p) { html += progCardHtml(p); });
+    else html += '<div class="prog-reason">Nothing pending right now — check back after your next document upload.</div>';
+
+    html += '<div class="modal-section-title not">Not yet eligible <span class="count-pill">' + m.not.length + "</span></div>";
+    m.not.forEach(function (p) { html += progCardHtml(p); });
 
     body.innerHTML = html;
   }
@@ -407,8 +410,8 @@
       var pct = Math.round((count / total) * 100);
       return '<div class="bar-row">' +
                '<div class="bar-label">' + esc(p.shortName) + "</div>" +
-               '<div class="bar-track"><div class="bar-fill" data-pct="' + pct + '">' + pct + "%</div></div>" +
-               '<div class="bar-count">' + count + "</div>" +
+               '<div class="bar-track"><div class="bar-fill" data-pct="' + pct + '">' + count + '</div></div>' +
+               '<div class="bar-count" title="' + count + ' of ' + total + ' students">' + pct + "%</div>" +
              "</div>";
     }).join("");
     $("programChart").innerHTML = rows;
@@ -449,10 +452,12 @@
 
       var almostHtml = "";
       if (p.status === "almost") {
+        var needsEmail = !dec || dec === "maybe";
         almostHtml =
           '<div class="spl-almost-detail">' +
-            '<span class="spl-almost-badge">Needs Action</span>' +
-            (p.missing ? '<span class="spl-missing">&#9888; ' + esc(p.missing) + '</span>' : '') +
+            '<span class="spl-almost-badge">Almost</span>' +
+            (p.missing ? '<span class="spl-missing">&#9888; Missing: ' + esc(p.missing) + '</span>' : '') +
+            (needsEmail ? '<span class="spl-email-flag">&#9993; Follow-up email needed</span>' : '') +
           '</div>';
       }
 
@@ -471,7 +476,7 @@
     }
 
     return '<details class="prog-dropdown">' +
-      '<summary class="prog-dropdown-btn">Programs (' + count + ') &#9660;</summary>' +
+      '<summary class="prog-dropdown-btn">Programs (' + count + ')</summary>' +
       '<ul class="spl-list">' + items + '</ul>' +
     '</details>';
   }
@@ -520,14 +525,70 @@
   }
 
   /* Returns true if the student is 100% eligible:
-     qualified for at least one program (regardless of "almost" matches). */
+     qualified for at least one program AND has zero "almost" matches. */
   function isFullyEligible(s) {
-    return s.matches.qualified.length > 0;
+    return s.matches.qualified.length > 0 && s.matches.almost.length === 0;
+  }
+
+  /* ======================================================================
+     PROGRAM FILTER (custom animated dropdown)
+     ---------------------------------------------------------------------- */
+  var programFilter = "all";          // session-only state, persists across tab switches
+  var timeFilter = "all";             // time-period filter state
+
+  /* Mock data source. TODO: Replace with fetch('/api/programs') when the
+     backend is ready — keep the { id, name } shape so callers don't change. */
+  function getProgramOptions() {
+    return [{ id: "all", name: "All Programs" }].concat(
+      T.PROGRAMS.map(function (p) { return { id: p.id, name: p.shortName }; })
+    );
+  }
+
+  function getTimeOptions() {
+    return [
+      { id: "all",   name: "All Time" },
+      { id: "24h",   name: "Last 24 Hours" },
+      { id: "48h",   name: "Last 48 Hours" },
+      { id: "7d",    name: "Last 7 Days" },
+      { id: "30d",   name: "Last 30 Days" }
+    ];
+  }
+
+  function getTimeThreshold(filterId) {
+    var now = Date.now();
+    switch (filterId) {
+      case "24h": return now - (24 * 60 * 60 * 1000);
+      case "48h": return now - (48 * 60 * 60 * 1000);
+      case "7d":  return now - (7 * 24 * 60 * 60 * 1000);
+      case "30d": return now - (30 * 24 * 60 * 60 * 1000);
+      default:    return 0;  // "all" — everything passes
+    }
+  }
+
+  /* True when the student matches the active program filter (qualified OR
+     almost qualified for the selected program). "all" matches everyone. */
+  function matchesProgramFilter(s) {
+    if (programFilter === "all") return true;
+    return s.matches.qualified.concat(s.matches.almost).some(function (p) {
+      return p.id === programFilter;
+    });
+  }
+
+  /* True when the student's matchedAt timestamp falls within the selected period. */
+  function matchesTimeFilter(s) {
+    if (timeFilter === "all") return true;
+    return s.matchedAt >= getTimeThreshold(timeFilter);
   }
 
   /* ---- Feature 8: priority-ranked roster ------------------------------- */
   function renderRoster() {
     var ranked = T.rankStudents(T.STUDENTS.slice());
+
+    // Apply the active program filter before splitting into tab groups
+    ranked = ranked.filter(function (r) { return matchesProgramFilter(r.student); });
+
+    // Apply the active time-period filter
+    ranked = ranked.filter(function (r) { return matchesTimeFilter(r.student); });
 
     // Split into the two tab groups
     var fullGroup   = ranked.filter(function (r) { return isFullyEligible(r.student); });
@@ -550,7 +611,7 @@
         return '<span class="p-chip">' + esc(x) + "</span>";
       }).join("");
       var note = r.note ? '<div class="prog-reason">' + esc(r.note) + "</div>" : "";
-      var sel = s.id === state.currentId ? ' style="background:#ffffff;border-left:3px solid var(--primary);"' : "";
+      var sel = s.id === state.currentId ? ' style="background:#f3ecff;"' : "";
       return "<tr" + sel + ">" +
         '<td><span class="plevel l' + r.level + '">P' + r.level + "</span> #" + (ranked.indexOf(r) + 1) + "</td>" +
         "<td><b>" + esc(s.name) + "</b>" + studentProgramListHtml(s) + "</td>" +
@@ -597,7 +658,7 @@
      ====================================================================== */
   function letterhead(subtitle) {
     return '<div class="doc-letterhead">' +
-      '<div class="doc-seal">GV</div>' +
+      '<img id="college-logo" src="/images/images (1).png" height="40" width="60">' +
       '<div><div class="doc-org">Golden West College<small>' + esc(subtitle) + "</small></div></div></div>";
   }
   function docRow(label, value) {
@@ -706,6 +767,230 @@
     });
   }
 
+  /* ---- Program filter: build options + wire interactions --------------- */
+  var pfInited = false;
+
+  function wireProgramFilter() {
+    var wrap = $("programFilter");
+    var trigger = $("pfTrigger");
+    var listbox = $("pfListbox");
+    var valueEl = $("pfValue");
+    if (!wrap || !trigger || !listbox || !valueEl || pfInited) return;
+    pfInited = true;
+
+    // Build options from the (mock) data source
+    var options = getProgramOptions();
+    listbox.innerHTML = options.map(function (o) {
+      var selected = o.id === programFilter ? "true" : "false";
+      return '<li class="pf-option" role="option" id="pf-opt-' + o.id + '" ' +
+             'data-value="' + o.id + '" aria-selected="' + selected + '">' +
+             esc(o.name) + "</li>";
+    }).join("");
+
+    var optionEls = Array.prototype.slice.call(listbox.querySelectorAll(".pf-option"));
+    var activeIndex = -1;
+
+    function isOpen() { return wrap.classList.contains("open"); }
+
+    function setActive(i) {
+      if (activeIndex > -1 && optionEls[activeIndex]) {
+        optionEls[activeIndex].classList.remove("pf-active");
+      }
+      activeIndex = i;
+      if (i > -1 && optionEls[i]) {
+        optionEls[i].classList.add("pf-active");
+        trigger.setAttribute("aria-activedescendant", optionEls[i].id);
+        optionEls[i].scrollIntoView({ block: "nearest" });
+      } else {
+        trigger.removeAttribute("aria-activedescendant");
+      }
+    }
+
+    function openList() {
+      wrap.classList.add("open");
+      trigger.setAttribute("aria-expanded", "true");
+      // Start keyboard focus on the currently selected option
+      var selIdx = optionEls.findIndex(function (el) {
+        return el.getAttribute("aria-selected") === "true";
+      });
+      setActive(selIdx > -1 ? selIdx : 0);
+    }
+
+    function closeList(returnFocus) {
+      wrap.classList.remove("open");
+      trigger.setAttribute("aria-expanded", "false");
+      setActive(-1);
+      if (returnFocus) trigger.focus();
+    }
+
+    function selectOption(el) {
+      var id = el.getAttribute("data-value");
+      programFilter = id;
+      optionEls.forEach(function (o) {
+        o.setAttribute("aria-selected", o === el ? "true" : "false");
+      });
+      valueEl.textContent = el.textContent;
+      closeList(true);
+      renderRoster();          // reactive, client-side update
+    }
+
+    trigger.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (isOpen()) { closeList(); } else { openList(); }
+    });
+
+    optionEls.forEach(function (el, i) {
+      el.addEventListener("click", function (e) { e.stopPropagation(); selectOption(el); });
+      el.addEventListener("mousemove", function () { setActive(i); });
+    });
+
+    // Keyboard support on the trigger
+    trigger.addEventListener("keydown", function (e) {
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          if (!isOpen()) { openList(); }
+          else { setActive(Math.min(optionEls.length - 1, activeIndex + 1)); }
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          if (!isOpen()) { openList(); }
+          else { setActive(Math.max(0, activeIndex - 1)); }
+          break;
+        case "Enter":
+        case " ":
+          e.preventDefault();
+          if (!isOpen()) { openList(); }
+          else if (activeIndex > -1) { selectOption(optionEls[activeIndex]); }
+          break;
+        case "Escape":
+          if (isOpen()) { e.preventDefault(); closeList(true); }
+          break;
+        case "Home":
+          if (isOpen()) { e.preventDefault(); setActive(0); }
+          break;
+        case "End":
+          if (isOpen()) { e.preventDefault(); setActive(optionEls.length - 1); }
+          break;
+      }
+    });
+
+    // Click outside closes the dropdown
+    document.addEventListener("click", function (e) {
+      if (isOpen() && !wrap.contains(e.target)) closeList();
+    });
+  }
+
+  /* ---- Time-period filter: build options + wire interactions ------------ */
+  var tfInited = false;
+
+  function wireTimeFilter() {
+    var wrap = $("timeFilterWrap");
+    var trigger = $("tfTrigger");
+    var listbox = $("tfListbox");
+    var valueEl = $("tfValue");
+    if (!wrap || !trigger || !listbox || !valueEl || tfInited) return;
+    tfInited = true;
+
+    var options = getTimeOptions();
+    listbox.innerHTML = options.map(function (o) {
+      var selected = o.id === timeFilter ? "true" : "false";
+      return '<li class="pf-option" role="option" id="tf-opt-' + o.id + '" ' +
+             'data-value="' + o.id + '" aria-selected="' + selected + '">' +
+             esc(o.name) + "</li>";
+    }).join("");
+
+    var optionEls = Array.prototype.slice.call(listbox.querySelectorAll(".pf-option"));
+    var activeIndex = -1;
+
+    function isOpen() { return wrap.classList.contains("open"); }
+
+    function setActive(i) {
+      if (activeIndex > -1 && optionEls[activeIndex]) {
+        optionEls[activeIndex].classList.remove("pf-active");
+      }
+      activeIndex = i;
+      if (i > -1 && optionEls[i]) {
+        optionEls[i].classList.add("pf-active");
+        trigger.setAttribute("aria-activedescendant", optionEls[i].id);
+        optionEls[i].scrollIntoView({ block: "nearest" });
+      } else {
+        trigger.removeAttribute("aria-activedescendant");
+      }
+    }
+
+    function openList() {
+      wrap.classList.add("open");
+      trigger.setAttribute("aria-expanded", "true");
+      var selIdx = optionEls.findIndex(function (el) {
+        return el.getAttribute("aria-selected") === "true";
+      });
+      setActive(selIdx > -1 ? selIdx : 0);
+    }
+
+    function closeList(returnFocus) {
+      wrap.classList.remove("open");
+      trigger.setAttribute("aria-expanded", "false");
+      setActive(-1);
+      if (returnFocus) trigger.focus();
+    }
+
+    function selectOption(el) {
+      var id = el.getAttribute("data-value");
+      timeFilter = id;
+      optionEls.forEach(function (o) {
+        o.setAttribute("aria-selected", o === el ? "true" : "false");
+      });
+      valueEl.textContent = el.textContent;
+      closeList(true);
+      renderRoster();
+    }
+
+    trigger.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (isOpen()) { closeList(); } else { openList(); }
+    });
+
+    optionEls.forEach(function (el, i) {
+      el.addEventListener("click", function (e) { e.stopPropagation(); selectOption(el); });
+      el.addEventListener("mousemove", function () { setActive(i); });
+    });
+
+    trigger.addEventListener("keydown", function (e) {
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          if (!isOpen()) { openList(); }
+          else { setActive(Math.min(optionEls.length - 1, activeIndex + 1)); }
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          if (!isOpen()) { openList(); }
+          else { setActive(Math.max(0, activeIndex - 1)); }
+          break;
+        case "Enter":
+        case " ":
+          e.preventDefault();
+          if (!isOpen()) { openList(); }
+          else if (activeIndex > -1) { selectOption(optionEls[activeIndex]); }
+          break;
+        case "Escape":
+          if (isOpen()) { e.preventDefault(); closeList(true); }
+          break;
+        case "Home":
+          if (isOpen()) { e.preventDefault(); setActive(0); }
+          break;
+        case "End":
+          if (isOpen()) { e.preventDefault(); setActive(optionEls.length - 1); }
+          break;
+      }
+    });
+
+    document.addEventListener("click", function (e) {
+      if (isOpen() && !wrap.contains(e.target)) closeList();
+    });
+  }
+
   /* ======================================================================
      INIT — re-wire existing controls to the student-aware handlers
      ====================================================================== */
@@ -734,13 +1019,9 @@
     renderAnalytics();
     renderProgramChart();
     initRosterTabs();
+    wireProgramFilter();
+    wireTimeFilter();
     renderRoster();
-
-    // Expose refresh function for the tracking overlay to call
-    window._refreshAdmin = function() {
-      renderAnalytics();
-      renderRoster();
-    };
 
     // First-load notification toast
     setTimeout(showToast, 700);
@@ -750,146 +1031,5 @@
     document.addEventListener("DOMContentLoaded", init);
   } else {
     init();
-  }
-})();
-
-
-/* ============================================================================
-   TRACKING STATUS OVERLAY
-   Fetches email tracking data from DynamoDB via /api/tracking and updates
-   student decisions + admin panel badges to show:
-     - "Opted In" (green) if student clicked accept
-     - "Opted Out" (gray) if student clicked opt-out  
-     - "Pending - X days" if waiting, with red background after 48h
-   ========================================================================== */
-(function() {
-  "use strict";
-
-  var T = window.TAFT;
-  if (!T) return;
-
-  function fetchAndApplyTracking() {
-    fetch("/api/tracking")
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        applyTracking(data.tracking);
-      })
-      .catch(function(err) {
-        console.log("[Tracking] API not available:", err.message);
-      });
-  }
-
-  function applyTracking(trackingList) {
-    trackingList.forEach(function(t) {
-      // Find the matching student in TAFT
-      var student = T.STUDENTS.filter(function(s) { return s.name === t.name; })[0];
-      if (!student) return;
-
-      // Apply tracking status as decisions
-      ["eops","care","calworks","nextup","vrc","dsps","promise","basicneeds"].forEach(function(prog) {
-        var status = t.programs[prog];
-        if (!status) return;
-
-        if (status.status === "opted_in") {
-          student.decisions[prog] = "accepted";
-        } else if (status.status === "opted_out") {
-          student.decisions[prog] = "declined";
-        }
-        // For "pending" — add tracking info to the student for display
-        if (status.status === "pending") {
-          if (!student._tracking) student._tracking = {};
-          student._tracking[prog] = status;
-        }
-      });
-    });
-
-    // Refresh the admin panel display if it exists
-    updateAdminPanel(trackingList);
-    
-    // Trigger a re-render of the admin analytics if the function exists
-    if (window._refreshAdmin) window._refreshAdmin();
-  }
-
-  function updateAdminPanel(trackingList) {
-    // Find all student rows in the admin student list
-    var rows = document.querySelectorAll(".spl-row");
-    if (!rows.length) return;
-
-    var trackingMap = {};
-    trackingList.forEach(function(t) { trackingMap[t.name] = t.programs; });
-
-    rows.forEach(function(row) {
-      var nameEl = row.querySelector(".spl-name");
-      if (!nameEl) return;
-      var name = nameEl.textContent.trim();
-      var tracking = trackingMap[name];
-      if (!tracking) return;
-
-      // Find or create badge container
-      var badge = row.querySelector(".tracking-badge");
-      if (!badge) {
-        badge = document.createElement("div");
-        badge.className = "tracking-badge";
-        badge.style.cssText = "display:flex;gap:4px;margin-top:4px;flex-wrap:wrap;";
-        row.appendChild(badge);
-      }
-      badge.innerHTML = "";
-
-      ["eops","care","calworks"].forEach(function(prog) {
-        var s = tracking[prog];
-        if (!s || s.status === "not_eligible" || s.status === "not_sent") return;
-
-        var span = document.createElement("span");
-        span.style.cssText = "font-size:10px;padding:2px 6px;border-radius:4px;font-weight:700;";
-
-        var label = prog.toUpperCase();
-        if (s.status === "opted_in") {
-          span.style.background = "#0F603D";
-          span.style.color = "#fff";
-          span.textContent = label + ": Opted In \u2713";
-        } else if (s.status === "opted_out") {
-          span.style.background = "#6b7280";
-          span.style.color = "#fff";
-          span.textContent = label + ": Opted Out";
-        } else if (s.status === "pending") {
-          if (s.urgent) {
-            span.style.background = "#dc2626";
-            span.style.color = "#fff";
-            span.textContent = label + ": " + s.hoursSince + "h no response \u26A0";
-          } else if (s.daysSince >= 1) {
-            span.style.background = "#f59e0b";
-            span.style.color = "#000";
-            span.textContent = label + ": " + s.daysSince + "d waiting";
-          } else {
-            span.style.background = "#e5e7eb";
-            span.style.color = "#374151";
-            span.textContent = label + ": Sent today";
-          }
-        }
-        badge.appendChild(span);
-      });
-    });
-
-    // Also update the "pending" count in the admin stats
-    var pendingEl = document.querySelector(".stat-pending-count");
-    if (pendingEl) {
-      var pending = 0;
-      trackingList.forEach(function(t) {
-        var hasPending = Object.values(t.programs).some(function(p) { return p.status === "pending"; });
-        if (hasPending) pending++;
-      });
-      pendingEl.textContent = pending + " awaiting response";
-    }
-  }
-
-  // Fetch on load and refresh every 15 seconds
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", function() {
-      setTimeout(fetchAndApplyTracking, 500); // slight delay for TAFT to init
-      setInterval(fetchAndApplyTracking, 15000);
-    });
-  } else {
-    setTimeout(fetchAndApplyTracking, 500);
-    setInterval(fetchAndApplyTracking, 15000);
   }
 })();

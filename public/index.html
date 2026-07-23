@@ -23,15 +23,26 @@
   </div>
 </header>
 
-<nav class="main-nav">
-  <div class="nav-links">
-    <a href="#" class="active">Home</a>
-    <a href="#">Degrees | Certs | Programs</a>
-    <a href="#">My Account</a>
-    <a href="#">Students</a>
-    <a href="#">Golden West Campus Life</a>
+<nav class="main-nav" id="mainNav">
+  <button class="nav-toggle" id="navToggle" type="button"
+          aria-label="Menu" aria-expanded="false" aria-controls="navMenu">
+    <span class="nav-toggle-box">
+      <span class="nav-toggle-bar"></span>
+      <span class="nav-toggle-bar"></span>
+      <span class="nav-toggle-bar"></span>
+    </span>
+  </button>
+  <div class="nav-menu" id="navMenu">
+    <div class="nav-links">
+      <a href="#" class="active">Home</a>
+      <a href="#">Degrees | Certs | Programs</a>
+      <a href="#">My Account</a>
+      <a href="#">Students</a>
+      <a href="#">Golden West Campus Life</a>
+    </div>
+    <a href="#" class="view-all"><img src="/images/search-4-svgrepo-com.svg"height="30" width="30"> VIEW ALL CARDS</a>
   </div>
-  <a href="#" class="view-all">&#128269; VIEW ALL CARDS</a>
+  <div class="nav-backdrop" id="navBackdrop"></div>
 </nav>
 
 <!-- ===================================================================
@@ -60,14 +71,39 @@
 
       <!-- Eligibility tabs -->
       <div class="roster-tabs" id="rosterTabs" style="display:flex;border-bottom:2px solid #e0e0e0;background:#f7f4ff;padding:0 20px;">
-        <button class="roster-tab active" data-tab="full" id="tabFull">
-          ✅ 100% Eligible
+        <button class="roster-tab active" data-tab="full" id="tabFull"><img src="/images/Eo_circle_green_checkmark.svg.webp" height="15" width="15" > 100% Eligible
           <span class="tab-count" id="tabFullCount">0</span>
         </button>
         <button class="roster-tab" data-tab="others" id="tabOthers">
           📧 Others — Action Needed
           <span class="tab-count" id="tabOthersCount">0</span>
         </button>
+      </div>
+
+      <!-- Program filter (custom animated dropdown) -->
+      <div class="program-filter-bar">
+        <span class="pf-label" id="pfLabel">Filter by Program:</span>
+        <div class="program-filter" id="programFilter">
+          <button type="button" class="pf-trigger" id="pfTrigger"
+                  role="combobox" aria-haspopup="listbox" aria-expanded="false"
+                  aria-controls="pfListbox" aria-label="Filter by program">
+            <span class="pf-value" id="pfValue">All Programs</span>
+            <span class="pf-chevron" aria-hidden="true">&#9662;</span>
+          </button>
+          <ul class="pf-listbox" id="pfListbox" role="listbox" aria-label="Programs" tabindex="-1"></ul>
+        </div>
+
+        <!-- Time-period filter -->
+        <span class="pf-label" id="tfLabel">Time Period:</span>
+        <div class="program-filter" id="timeFilterWrap">
+          <button type="button" class="pf-trigger" id="tfTrigger"
+                  role="combobox" aria-haspopup="listbox" aria-expanded="false"
+                  aria-controls="tfListbox" aria-label="Filter by time period">
+            <span class="pf-value" id="tfValue">All Time</span>
+            <span class="pf-chevron" aria-hidden="true">&#9662;</span>
+          </button>
+          <ul class="pf-listbox" id="tfListbox" role="listbox" aria-label="Time periods" tabindex="-1"></ul>
+        </div>
       </div>
 
       <table class="admin-table" id="rosterTable">
@@ -108,6 +144,80 @@
 <script src="students.js"></script>
 <script src="index.js"></script>
 <script src="portal.js"></script>
+
+<!-- Hamburger / mobile-nav toggle (self-contained) -->
+<script>
+  (function () {
+    var nav = document.getElementById('mainNav');
+    var toggle = document.getElementById('navToggle');
+    var menu = document.getElementById('navMenu');
+    var backdrop = document.getElementById('navBackdrop');
+    if (!nav || !toggle || !menu) return;
+
+    function isOpen() { return nav.classList.contains('open'); }
+
+    function openMenu() {
+      nav.classList.add('open');
+      toggle.setAttribute('aria-expanded', 'true');
+      document.body.classList.add('nav-open');
+    }
+
+    function closeMenu(returnFocus) {
+      nav.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+      document.body.classList.remove('nav-open');
+      if (returnFocus) toggle.focus();
+    }
+
+    toggle.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (isOpen()) { closeMenu(); } else { openMenu(); }
+    });
+
+    // Close when a nav link is clicked
+    menu.addEventListener('click', function (e) {
+      if (e.target.closest('a')) closeMenu();
+    });
+
+    // Close when the dimmed backdrop (outside the menu) is clicked
+    if (backdrop) backdrop.addEventListener('click', function () { closeMenu(); });
+
+    // Close when clicking anywhere outside the open menu
+    document.addEventListener('click', function (e) {
+      if (isOpen() && !menu.contains(e.target) && !toggle.contains(e.target)) {
+        closeMenu();
+      }
+    });
+
+    // Close on Escape and return focus to the toggle
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && isOpen()) closeMenu(true);
+    });
+
+    // If the viewport grows back to desktop, reset the menu state
+    window.addEventListener('resize', function () {
+      if (window.innerWidth > 1024 && isOpen()) closeMenu();
+    });
+  })();
+</script>
+
+<!-- =====================================================================
+     GWC Eligibility Notification Widget (backend integration)
+     Standalone, self-contained popup. It calls the backend /api/tracking
+     endpoint; if the API is unreachable it silently does nothing, so it
+     never breaks the page.
+
+     BEFORE GOING LIVE, replace the two placeholders below:
+       data-api  → the deployed backend base URL
+                   (local dev per README: http://localhost:3000)
+       data-cwid → the logged-in student's CWID from the portal session.
+                   T00154237 is the default demo student (Maria Delgado);
+                   swap for the real session value in production.
+     Removing this single <script> tag removes the widget completely.
+     ===================================================================== -->
+<script src="/widget/gwc-eligibility-widget.js"
+        data-cwid="T00154237"
+        data-api="http://localhost:3000"></script>
 
 </body>
 </html>
