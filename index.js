@@ -1,4 +1,8 @@
-// Simple status-bar-on-hover behavior, mimicking the browser link preview in the screenshot
+// Backend API URL — change this when deploying to AWS Amplify
+  window.BACKEND_URL = 'https://bonus-junction-natural.ngrok-free.dev';
+  window.CURRENT_STUDENT_CWID = '@30302410'; // Demo student (Kylie Sanchez)
+
+  // Simple status-bar-on-hover behavior, mimicking the browser link preview in the screenshot
   document.querySelectorAll('a').forEach(function(a){
     a.addEventListener('mouseenter', function(){
       var bar = document.getElementById('statusBar');
@@ -142,6 +146,21 @@
         var prog = programs.filter(function(p){ return p.id === id; })[0];
         if(!prog) return;
         prog.decision = action === 'accept' ? 'accepted' : 'optedout';
+
+        // Call backend API to record the decision
+        var apiBase = window.BACKEND_URL || '';
+        if(action === 'accept'){
+          fetch(apiBase + '/api/send-email', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({cwid: window.CURRENT_STUDENT_CWID || 'demo', program: id})
+          }).then(function(r){ return r.json(); }).then(function(data){
+            console.log('[API] Opt-in recorded:', data);
+          }).catch(function(err){
+            console.log('[API] Backend not available, recorded locally only:', err.message);
+          });
+        }
+
         renderEligibility();
       });
     });
