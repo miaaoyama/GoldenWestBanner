@@ -60,10 +60,11 @@ export async function GET(req: NextRequest) {
   });
 
   const programName = program.toUpperCase();
+  const studentName = student ? `${student.first_name} ${student.last_name}` : "Student";
   return htmlPage(
     "Confirmed!",
     `<div class="gold">🎉</div>
-     <h1>You're confirmed for ${programName}!</h1>
+     <h1>${studentName}, you're confirmed for ${programName}!</h1>
      <p>A confirmation email has been sent to your GWC student email. The ${programName} office will be in touch with next steps and orientation details.</p>
      <p style="margin-top:16px;font-size:13px;color:#6b7280;">You can close this page.</p>
      <canvas id="confetti" style="position:fixed;inset:0;pointer-events:none;z-index:99;"></canvas>

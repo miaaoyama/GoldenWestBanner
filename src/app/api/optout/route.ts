@@ -38,10 +38,12 @@ export async function GET(req: NextRequest) {
     staff_name: null,
   });
 
+  const studentName = student ? `${student.first_name} ${student.last_name}` : "Student";
+
   return htmlPage(
     "Opted Out",
     `<div style="font-size:2rem;margin-bottom:12px;">✓</div>
-     <h1>You've opted out of ${program.toUpperCase()}</h1>
+     <h1>${studentName}, you've opted out of ${program.toUpperCase()}</h1>
      <p>You won't receive further notifications about this program. If you change your mind, visit Student Services.</p>`
   );
 }
