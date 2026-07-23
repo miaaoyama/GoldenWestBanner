@@ -271,38 +271,6 @@
     ].join("\n");
   }
 
-  var toastEl = null;
-
-  function buildToast() {
-    var s = current();
-    var m = s.matches;
-    var count = m.qualified.length;
-    var programs = m.qualified.map(function(p) { return p.shortName; }).join(", ");
-
-    toastEl = document.createElement("div");
-    toastEl.className = "qual-toast";
-    toastEl.innerHTML =
-      '<button class="qt-close" aria-label="Close">&times;</button>' +
-      '<div class="qt-emoji">🎉</div>' +
-      '<div class="qt-title">Congratulations, ' + firstName(s) + '!</div>' +
-      '<div class="qt-body">You qualify for <strong>' + count + ' program' + (count > 1 ? 's' : '') + '</strong>: ' + programs + '. Click below to review and accept.</div>' +
-      '<div class="qt-cta">View My Programs</div>';
-
-    document.body.appendChild(toastEl);
-
-    // Close button
-    toastEl.querySelector(".qt-close").addEventListener("click", function(e) {
-      e.stopPropagation();
-      hideToast();
-    });
-
-    // Click toast body to open modal
-    toastEl.addEventListener("click", function() {
-      hideToast();
-      openMatchModal();
-    });
-  }
-
   function showToast() {
     if (!toastEl) buildToast();
     requestAnimationFrame(function () {
