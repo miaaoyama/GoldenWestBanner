@@ -120,23 +120,27 @@ export default function PhoneMockup({ messages, resetKey }: PhoneMockupProps) {
         setTyping(false);
         let responseBody: string;
         if (text === "y" || text === "yes") {
+          // Record opt-in in the backend
+          fetch("/api/sms-reply", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "accept", studentName: messages[0]?.studentName || "" })
+          }).then(function(r) { return r.json(); }).then(function(data) {
+            if (data.success === false || (data.programs && data.programs.length === 0)) {
+              // Already accepted — no programs to update
+            }
+          }).catch(function(e) { console.log("[SMS] Backend unavailable:", e.message); });
+
           responseBody = `Thank you! You have been opted in. Make an appointment with a counselor within the next 1-2 business days to learn more about next steps.\n\nWelcome to the program! 🎉\n\nhttps://www.goldenwestcollege.edu/counseling/index.html`;
           
           // Show confetti
           setShowConfetti(true);
           setTimeout(() => setShowConfetti(false), 4000);
 
-          // Record opt-in in the backend (same as clicking Accept in email)
-          fetch("/api/sms-reply", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "accept", studentName: messages[0]?.studentName || "" })
-          }).catch(function(e) { console.log("[SMS] Backend unavailable:", e.message); });
-
         } else if (text === "n" || text === "no") {
           responseBody = `You have been opted out. If you change your mind, you can contact the EOPS office at (714) 892-7711 ext. 55327 or visit goldenwestcollege.edu/eops anytime.`;
           
-          // Record opt-out in the backend (same as clicking Opt Out in email)
+          // Record opt-out in the backend
           fetch("/api/sms-reply", {
             method: "POST",
             headers: { "Content-Type": "application/json" },

@@ -173,8 +173,13 @@ function handleAccept(name) {
   var frame = document.getElementById("emailFrame");
   var overlay = document.createElement("div");
   overlay.className = "confirm-overlay";
-  overlay.innerHTML = '<button onclick="this.parentElement.remove();var c=document.querySelector(\'.confetti\');if(c)c.remove();" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:#6b7280;">✕</button><span style="font-size:2.5rem;">🎉</span><h2>' + firstName + ', you\'re confirmed!</h2><p>A confirmation email has been sent to your GWC student email.<br>The program office will be in touch with next steps and orientation details.</p>';
+  overlay.innerHTML = '<button id="gwcCloseOverlay" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:#6b7280;">✕</button><span style="font-size:2.5rem;">🎉</span><h2>' + firstName + ', you\'re confirmed!</h2><p>A confirmation email has been sent to your GWC student email.<br>The program office will be in touch with next steps and orientation details.</p>';
   frame.appendChild(overlay);
+  document.getElementById("gwcCloseOverlay").addEventListener("click", function() {
+    overlay.remove();
+    var c = document.querySelector(".confetti");
+    if (c) c.remove();
+  });
 
   // Confetti
   var canvas = document.createElement("canvas");
@@ -214,8 +219,11 @@ function handleOptout(name) {
   var frame = document.getElementById("emailFrame");
   var overlay = document.createElement("div");
   overlay.className = "confirm-overlay optout-overlay";
-  overlay.innerHTML = '<button onclick="this.parentElement.remove();" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:#6b7280;">✕</button><span style="font-size:2rem;">✓</span><h2>' + firstName + ', you\'ve opted out</h2><p>You won\'t receive further notifications about these programs.<br>If you change your mind, visit Student Services.</p>';
+  overlay.innerHTML = '<button id="gwcCloseOptout" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:#6b7280;">✕</button><span style="font-size:2rem;">✓</span><h2>' + firstName + ', you\'ve opted out</h2><p>You won\'t receive further notifications about these programs.<br>If you change your mind, visit Student Services.</p>';
   frame.appendChild(overlay);
+  document.getElementById("gwcCloseOptout").addEventListener("click", function() {
+    overlay.remove();
+  });
 }
 </script>
 </body>
