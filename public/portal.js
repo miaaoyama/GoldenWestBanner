@@ -527,7 +527,7 @@
   /* Returns true if the student is 100% eligible:
      qualified for at least one program AND has zero "almost" matches. */
   function isFullyEligible(s) {
-    return s.matches.qualified.length > 0 && s.matches.almost.length === 0;
+    return s.matches.qualified.length > 0;
   }
 
   /* ======================================================================
@@ -611,7 +611,7 @@
         return '<span class="p-chip">' + esc(x) + "</span>";
       }).join("");
       var note = r.note ? '<div class="prog-reason">' + esc(r.note) + "</div>" : "";
-      var sel = s.id === state.currentId ? ' style="background:#f3ecff;"' : "";
+      var sel = s.id === state.currentId ? ' style="background:#ffffff;border-left:3px solid var(--primary);"' : "";
       return "<tr" + sel + ">" +
         '<td><span class="plevel l' + r.level + '">P' + r.level + "</span> #" + (ranked.indexOf(r) + 1) + "</td>" +
         "<td><b>" + esc(s.name) + "</b>" + studentProgramListHtml(s) + "</td>" +
@@ -1023,6 +1023,12 @@
     wireTimeFilter();
     renderRoster();
 
+    // Expose refresh for tracking overlay
+    window._refreshAdmin = function() {
+      renderAnalytics();
+      renderRoster();
+    };
+
     // First-load notification toast
     setTimeout(showToast, 700);
   }
@@ -1031,5 +1037,46 @@
     document.addEventListener("DOMContentLoaded", init);
   } else {
     init();
+  }
+})();
+
+
+/* ============================================================================
+   TRACKING OVERLAY — syncs DynamoDB status with portal UI
+   ========================================================================== */
+(function() {
+  "use strict";
+  var T = window.TAFT;
+  if (!T) return;
+
+  function fetchAndApplyTracking() {
+    fetch("/api/tracking")
+      .then(function(r) { return r.json(); })
+      .then(function(data) { applyTracking(data.tracking); })
+      .catch(function(err) { console.log("[Tracking] API not available:", err.message); });
+  }
+
+  function applyTracking(trackingList) {
+    trackingList.forEach(function(t) {
+      var student = T.STUDENTS.filter(function(s) { return s.name === t.name; })[0];
+      if (!student) return;
+      ["eops","care","calworks","nextup","vrc","dsps","promise","basicneeds"].forEach(function(prog) {
+        var status = t.programs[prog];
+        if (!status) return;
+        if (status.status === "opted_in") student.decisions[prog] = "accepted";
+        else if (status.status === "opted_out") student.decisions[prog] = "declined";
+      });
+    });
+    if (window._refreshAdmin) window._refreshAdmin();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function() {
+      setTimeout(fetchAndApplyTracking, 500);
+      setInterval(fetchAndApplyTracking, 15000);
+    });
+  } else {
+    setTimeout(fetchAndApplyTracking, 500);
+    setInterval(fetchAndApplyTracking, 15000);
   }
 })();

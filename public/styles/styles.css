@@ -841,18 +841,18 @@
   vertical-align:middle;
 }
 .roster-tab:hover{
-  color:var(--purple);
-  background:#ede8ff;
+  color:var(--primary);
+  background:#f0f8f4;
 }
 .roster-tab.active{
-  color:var(--purple);
-  border-bottom-color:var(--purple);
+  color:var(--primary);
+  border-bottom-color:var(--primary);
   background:#fff;
 }
 .tab-count{
   display:inline-block;
   margin-left:8px;
-  background:var(--purple);
+  background:var(--primary);
   color:#fff;
   font-size:11px;
   font-weight:800;
@@ -891,7 +891,7 @@
   gap: 5px;
   font-size: 12px;
   font-weight: 700;
-  color: var(--purple);
+  color: var(--primary);
   background: #f0eafa;
   border: 1px solid #c9b8ef;
   border-radius: 5px;
