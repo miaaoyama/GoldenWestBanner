@@ -1,0 +1,248 @@
+TAFT COLLEGE — STUDENT SUCCESS PROGRAM PRIORITY RANKING
+Generated: July 22, 2026   (FICTIONAL DEMONSTRATION DATA)
+======================================================================
+
+Weighting order: Homeless > Foster Youth > Lowest SAI > Pell >
+Household Income > Household Size > Veteran > First Generation > Disability.
+Lower SAI scores receive significantly higher priority.
+
+======================================================================
+
+#1  PRIORITY LEVEL 1   (score 1989)
+----------------------------------------------------------------------
+Name        : Destiny Williams
+Student ID  : T00154681
+Major       : Social Work
+SAI         : -300
+Household   : size 6, income $17,000
+Reason      : Experiencing homelessness; Current/former foster youth; SAI -300 (maximum need); Pell eligible; Household income $17,000; Large household (6); First-generation
+
+#2  PRIORITY LEVEL 1   (score 1972)
+----------------------------------------------------------------------
+Name        : Aaliyah Jackson
+Student ID  : T00155125
+Major       : Respiratory Therapy
+SAI         : -80
+Household   : size 5, income $20,000
+Reason      : Experiencing homelessness; Current/former foster youth; SAI -80 (maximum need); Pell eligible; Household income $20,000; Large household (5); First-generation
+
+#3  PRIORITY LEVEL 1   (score 1454)
+----------------------------------------------------------------------
+Name        : Michael Johnson
+Student ID  : T00154496
+Major       : Kinesiology
+SAI         : -120
+Household   : size 2, income $15,000
+Reason      : Experiencing homelessness; SAI -120 (maximum need); Pell eligible; Household income $15,000; First-generation
+
+#4  PRIORITY LEVEL 1   (score 1451)
+----------------------------------------------------------------------
+Name        : Jamal Carter
+Student ID  : T00154274
+Major       : Business Administration
+SAI         : 320
+Household   : size 4, income $19,500
+Reason      : Experiencing homelessness; SAI 320; Pell eligible; Household income $19,500; First-generation
+
+#5  PRIORITY LEVEL 1   (score 1441)
+----------------------------------------------------------------------
+Name        : Priscilla Vega
+Student ID  : T00155051
+Major       : Liberal Arts
+SAI         : 640
+Household   : size 5, income $30,000
+Reason      : Experiencing homelessness; SAI 640; Pell eligible; Household income $30,000; Large household (5); First-generation
+
+#6  PRIORITY LEVEL 1   (score 953)
+----------------------------------------------------------------------
+Name        : Nia Robinson
+Student ID  : T00154977
+Major       : Sociology
+SAI         : 180
+Household   : size 4, income $23,500
+Reason      : Current/former foster youth; SAI 180; Pell eligible; Household income $23,500; First-generation
+
+#7  PRIORITY LEVEL 2   (score 890)
+----------------------------------------------------------------------
+Name        : Antonio Rossi
+Student ID  : T00154644
+Major       : Music
+SAI         : 1240
+Household   : size 3, income $40,000
+Reason      : Current/former foster youth; SAI 1240; Pell eligible; Household income $40,000; Disability accommodations
+
+#8  PRIORITY LEVEL 2   (score 867)
+----------------------------------------------------------------------
+Name        : Hannah Martinez
+Student ID  : T00154829
+Major       : Art History
+SAI         : 1600
+Household   : size 4, income $45,000
+Reason      : Current/former foster youth; SAI 1600; Pell eligible; Household income $45,000
+
+#9  PRIORITY LEVEL 2   (score 863)
+----------------------------------------------------------------------
+Name        : Ashley Thompson
+Student ID  : T00154385
+Major       : Psychology
+SAI         : 1450
+Household   : size 3, income $47,000
+Reason      : Current/former foster youth; SAI 1450; Pell eligible; Household income $47,000
+
+#10  PRIORITY LEVEL 2   (score 505)
+----------------------------------------------------------------------
+Name        : Diego Herrera
+Student ID  : T00154422
+Major       : Administration of Justice
+SAI         : 90
+Household   : size 5, income $22,000
+Reason      : SAI 90; Pell eligible; Household income $22,000; Large household (5); Veteran / service member; First-generation
+
+#11  PRIORITY LEVEL 2   (score 479)
+----------------------------------------------------------------------
+Name        : Maria Delgado
+Student ID  : T00154237
+Major       : Nursing (RN)
+SAI         : -450
+Household   : size 5, income $28,000
+Reason      : SAI -450 (maximum need); Pell eligible; Household income $28,000; Large household (5); First-generation
+
+#12  PRIORITY LEVEL 3   (score 477)
+----------------------------------------------------------------------
+Name        : Luis Mendoza
+Student ID  : T00154940
+Major       : Agriculture Business
+SAI         : 340
+Household   : size 6, income $25,000
+Reason      : SAI 340; Pell eligible; Household income $25,000; Large household (6); First-generation; Disability accommodations
+
+#13  PRIORITY LEVEL 3   (score 464)
+----------------------------------------------------------------------
+Name        : Marcus Green
+Student ID  : T00154792
+Major       : Automotive Technology
+SAI         : 150
+Household   : size 3, income $21,000
+Reason      : SAI 150; Pell eligible; Household income $21,000; First-generation; Disability accommodations
+
+#14  PRIORITY LEVEL 3   (score 463)
+----------------------------------------------------------------------
+Name        : Fatima Al-Hassan
+Student ID  : T00154533
+Major       : Early Childhood Education
+SAI         : 410
+Household   : size 7, income $31,000
+Reason      : SAI 410; Pell eligible; Household income $31,000; Large household (7); First-generation
+
+#15  PRIORITY LEVEL 3   (score 459)
+----------------------------------------------------------------------
+Name        : Omar Farah
+Student ID  : T00154866
+Major       : Mathematics
+SAI         : 720
+Household   : size 8, income $33,000
+Reason      : SAI 720; Pell eligible; Household income $33,000; Large household (8); First-generation
+
+#16  PRIORITY LEVEL 3   (score 456)
+----------------------------------------------------------------------
+Name        : Carlos Ramirez
+Student ID  : T00154348
+Major       : Petroleum Technology
+SAI         : 780
+Household   : size 6, income $34,000
+Reason      : SAI 780; Pell eligible; Household income $34,000; Large household (6); First-generation; Disability accommodations
+
+#17  PRIORITY LEVEL 4   (score 449)
+----------------------------------------------------------------------
+Name        : Tyler Brooks
+Student ID  : T00154570
+Major       : Welding Technology
+SAI         : 260
+Household   : size 4, income $26,000
+Reason      : SAI 260; Pell eligible; Household income $26,000; First-generation
+
+#18  PRIORITY LEVEL 4   (score 445)
+----------------------------------------------------------------------
+Name        : Isabella Flores
+Student ID  : T00154755
+Major       : Communication Studies
+SAI         : 560
+Household   : size 5, income $29,000
+Reason      : SAI 560; Pell eligible; Household income $29,000; Large household (5); First-generation
+
+#19  PRIORITY LEVEL 4   (score 408)
+----------------------------------------------------------------------
+Name        : Jacob Torres
+Student ID  : T00155162
+Major       : Business Administration
+SAI         : 1180
+Household   : size 4, income $42,000
+Reason      : SAI 1180; Pell eligible; Household income $42,000; First-generation
+
+#20  PRIORITY LEVEL 4   (score 405)
+----------------------------------------------------------------------
+Name        : Ethan Walker
+Student ID  : T00155014
+Major       : Fire Technology
+SAI         : 1360
+Household   : size 3, income $49,000
+Reason      : SAI 1360; Pell eligible; Household income $49,000; Veteran / service member
+
+#21  PRIORITY LEVEL 4   (score 261)
+----------------------------------------------------------------------
+Name        : Grace Okoro
+Student ID  : T00154607
+Major       : Chemistry
+SAI         : 1980
+Household   : size 5, income $54,000
+Reason      : SAI 1980; Household income $54,000; Large household (5); First-generation
+
+#22  PRIORITY LEVEL 5   (score 231)
+----------------------------------------------------------------------
+Name        : Chloe Anderson
+Student ID  : T00154903
+Major       : Dental Hygiene
+SAI         : 2050
+Household   : size 3, income $58,000
+Reason      : SAI 2050; Household income $58,000; Disability accommodations
+
+#23  PRIORITY LEVEL 5   (score 227)
+----------------------------------------------------------------------
+Name        : Kevin Tran
+Student ID  : T00154718
+Major       : Engineering
+SAI         : 2850
+Household   : size 4, income $72,000
+Reason      : SAI 2850; Household income $72,000; Veteran / service member
+
+#24  PRIORITY LEVEL 5   (score 219)
+----------------------------------------------------------------------
+Name        : Emily Nguyen
+Student ID  : T00154311
+Major       : Biology (Pre-Med)
+SAI         : 2100
+Household   : size 4, income $61,000
+Reason      : SAI 2100; Household income $61,000
+
+#25  PRIORITY LEVEL 5   (score 166)
+----------------------------------------------------------------------
+Name        : Sarah Kim
+Student ID  : T00154459
+Major       : Computer Science
+SAI         : 3600
+Household   : size 4, income $88,000
+Reason      : SAI 3600; Household income $88,000; Disability accommodations
+Note        : SAI is 3,500+ — may qualify depending on funding availability.
+
+#26  PRIORITY LEVEL 5   (score 127)
+----------------------------------------------------------------------
+Name        : Brandon Lee
+Student ID  : T00155088
+Major       : Physics
+SAI         : 4200
+Household   : size 4, income $95,000
+Reason      : SAI 4200; Household income $95,000
+Note        : SAI is 3,500+ — may qualify depending on funding availability.
+
+======================================================================
+End of report — 26 students ranked.
