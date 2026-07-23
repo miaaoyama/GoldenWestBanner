@@ -65,6 +65,31 @@ export async function GET(req: NextRequest) {
     `<div class="gold">🎉</div>
      <h1>You're confirmed for ${programName}!</h1>
      <p>A confirmation email has been sent to your GWC student email. The ${programName} office will be in touch with next steps and orientation details.</p>
-     <p style="margin-top:16px;font-size:13px;color:#6b7280;">You can close this page.</p>`
+     <p style="margin-top:16px;font-size:13px;color:#6b7280;">You can close this page.</p>
+     <canvas id="confetti" style="position:fixed;inset:0;pointer-events:none;z-index:99;"></canvas>
+     <script>
+     (function(){
+       var c=document.getElementById("confetti"),ctx=c.getContext("2d");
+       c.width=window.innerWidth;c.height=window.innerHeight;
+       var colors=["#0F603D","#FFC522","#34d399","#f472b6","#60a5fa","#BADB3E"];
+       var pieces=[];
+       for(var i=0;i<200;i++){
+         pieces.push({x:Math.random()*c.width,y:Math.random()*c.height*0.3-50,w:7+Math.random()*7,h:4+Math.random()*5,
+           color:colors[Math.floor(Math.random()*colors.length)],vx:(Math.random()-0.5)*8,vy:2+Math.random()*5,
+           angle:Math.random()*Math.PI*2,spin:(Math.random()-0.5)*0.3,opacity:1,gravity:0.12,decay:0.995});
+       }
+       function draw(){
+         ctx.clearRect(0,0,c.width,c.height);
+         pieces=pieces.filter(function(p){return p.opacity>0.05;});
+         pieces.forEach(function(p){
+           p.vy+=p.gravity;p.vx*=p.decay;p.x+=p.vx;p.y+=p.vy;p.angle+=p.spin;p.opacity*=0.993;
+           ctx.save();ctx.globalAlpha=p.opacity;ctx.translate(p.x,p.y);ctx.rotate(p.angle);
+           ctx.fillStyle=p.color;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);ctx.restore();
+         });
+         if(pieces.length>0)requestAnimationFrame(draw);
+       }
+       draw();
+     })();
+     </script>`
   );
 }
