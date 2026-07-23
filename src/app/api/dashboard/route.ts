@@ -36,7 +36,7 @@ export async function GET() {
     return { id: s.cwid, name: `${s.first_name} ${s.last_name}`, email: s.email_gwc, program: programs.join(", ") || "None", outreach_status: outreachStatus, status, email_sent_date: emailSent, days_since_contact: daysSince, pending_items: pendingItems, staff_notes: s.ep_staff_notes, accepted_date: acceptedDate, tier: s.ep_eops_tier || "", last_click_days: lastClickDays };
   }
 
-  const allMapped = all.filter(s => s.ep_eops_status !== "not_eligible" || s.ep_care_status !== "not_eligible" || s.ep_calworks_status !== "not_eligible").map(mapStudent);
+  const allMapped = all.map(mapStudent);
 
   return NextResponse.json({
     students: allMapped,
