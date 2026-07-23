@@ -31,12 +31,12 @@ export async function GET() {
     const lastName = lastParts.join(" ");
 
     // Use the UI's rules directly — no recalculation
-    const eopsStatus = s.eops as EligibilityStatus;
-    const careStatus = s.care as EligibilityStatus;
-    const calworksStatus = s.calworks_status as EligibilityStatus;
+    const eopsStatus = (s.qualified.includes("eops") ? "confirmed" : s.conditional.includes("eops") ? "conditional" : "not_eligible") as EligibilityStatus;
+    const careStatus = (s.qualified.includes("care") ? "confirmed" : s.conditional.includes("care") ? "conditional" : "not_eligible") as EligibilityStatus;
+    const calworksStatus = (s.qualified.includes("calworks") ? "confirmed" : s.conditional.includes("calworks") ? "conditional" : "not_eligible") as EligibilityStatus;
 
-    const hasConfirmed = eopsStatus === "confirmed" || careStatus === "confirmed" || calworksStatus === "confirmed";
-    const hasConditional = eopsStatus === "conditional" || careStatus === "conditional" || calworksStatus === "conditional";
+    const hasConfirmed = s.qualified.length > 0;
+    const hasConditional = s.conditional.length > 0;
     if (hasConfirmed) confirmed++;
     else if (hasConditional) conditional++;
 
@@ -59,6 +59,8 @@ export async function GET() {
       ep_eops_tier: eopsStatus === "confirmed" ? (score >= 3 ? "tier1" : "tier2") : null,
       ep_priority_score: score,
       ep_pending_items: null,
+      ep_qualified_programs: s.qualified.join(","),
+      ep_conditional_programs: s.conditional.join(","),
 
       ep_eops_email_sent: null, ep_eops_email_clicked: null, ep_eops_email_attempts: 0,
       ep_care_email_sent: null, ep_care_email_clicked: null, ep_care_email_attempts: 0,
