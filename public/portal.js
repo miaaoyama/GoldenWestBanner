@@ -550,7 +550,7 @@
         return '<span class="p-chip">' + esc(x) + "</span>";
       }).join("");
       var note = r.note ? '<div class="prog-reason">' + esc(r.note) + "</div>" : "";
-      var sel = s.id === state.currentId ? ' style="background:#f3ecff;"' : "";
+      var sel = s.id === state.currentId ? ' style="background:#ffffff;border-left:3px solid var(--primary);"' : "";
       return "<tr" + sel + ">" +
         '<td><span class="plevel l' + r.level + '">P' + r.level + "</span> #" + (ranked.indexOf(r) + 1) + "</td>" +
         "<td><b>" + esc(s.name) + "</b>" + studentProgramListHtml(s) + "</td>" +
