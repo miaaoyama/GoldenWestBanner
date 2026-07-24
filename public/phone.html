@@ -204,6 +204,7 @@ function sendReply() {
       var alreadyIn = Object.values(currentStudent.programs).some(function(p){return p.status==="opted_in";});
       if (alreadyIn) {
         addMessage("Hi " + currentStudent.name.split(" ")[0] + "! You have already been accepted into: " + Object.entries(currentStudent.programs).filter(function(e){return e[1].eligibility==="confirmed";}).map(function(e){return e[1].displayName;}).join(", ") + ".\n\nThank you! Your counselor will be in touch with next steps.", "incoming");
+        showTrophies();
       } else {
         fetch(API+"/api/sms-reply",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"accept",studentName:currentStudent.name})}).catch(function(){});
         var confirmed = Object.entries(currentStudent.programs).filter(function(e){return e[1].eligibility==="confirmed";}).map(function(e){return e[1].displayName;});
@@ -242,10 +243,19 @@ function linkify(text, isUser) {
 function showConfetti() {
   var canvas = document.getElementById("confetti"); var ctx = canvas.getContext("2d");
   canvas.width = 292; canvas.height = 612;
-  var colors = ["#0F603D","#FFC522","#BADB3E","#1A9959","#f472b6","#60a5fa"];
+  var colors = ["#0F603D","#FFC522","#BADB3E","#1A9959","#f472b6","#60a5fa","#fbbf24","#34d399"];
   var pieces = [];
-  for (var i=0;i<80;i++) pieces.push({x:Math.random()*canvas.width,y:Math.random()*-100,w:5+Math.random()*5,h:3+Math.random()*4,color:colors[Math.floor(Math.random()*colors.length)],vx:(Math.random()-0.5)*4,vy:2+Math.random()*3,angle:Math.random()*6.28,spin:(Math.random()-0.5)*0.2,opacity:1,gravity:0.08});
-  function draw(){ctx.clearRect(0,0,canvas.width,canvas.height);pieces=pieces.filter(function(p){return p.opacity>0.02;});pieces.forEach(function(p){p.vy+=p.gravity;p.x+=p.vx;p.y+=p.vy;p.angle+=p.spin;p.opacity*=0.99;ctx.save();ctx.globalAlpha=p.opacity;ctx.translate(p.x,p.y);ctx.rotate(p.angle);ctx.fillStyle=p.color;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);ctx.restore();});if(pieces.length>0)requestAnimationFrame(draw);}
+  for (var i=0;i<150;i++) pieces.push({x:Math.random()*canvas.width,y:Math.random()*-200,w:5+Math.random()*7,h:3+Math.random()*5,color:colors[Math.floor(Math.random()*colors.length)],vx:(Math.random()-0.5)*6,vy:2+Math.random()*5,angle:Math.random()*6.28,spin:(Math.random()-0.5)*0.3,opacity:1,gravity:0.1});
+  function draw(){ctx.clearRect(0,0,canvas.width,canvas.height);pieces=pieces.filter(function(p){return p.opacity>0.02;});pieces.forEach(function(p){p.vy+=p.gravity;p.x+=p.vx;p.y+=p.vy;p.angle+=p.spin;p.opacity*=0.992;ctx.save();ctx.globalAlpha=p.opacity;ctx.translate(p.x,p.y);ctx.rotate(p.angle);ctx.fillStyle=p.color;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);ctx.restore();});if(pieces.length>0)requestAnimationFrame(draw);}
+  draw();
+}
+
+function showTrophies() {
+  var canvas = document.getElementById("confetti"); var ctx = canvas.getContext("2d");
+  canvas.width = 292; canvas.height = 612;
+  var trophies = [];
+  for (var i=0;i<30;i++) trophies.push({x:Math.random()*canvas.width,y:Math.random()*-300,vy:1+Math.random()*2,vx:(Math.random()-0.5)*1.5,opacity:1,size:16+Math.random()*12,rotation:Math.random()*0.3-0.15,gravity:0.05});
+  function draw(){ctx.clearRect(0,0,canvas.width,canvas.height);trophies=trophies.filter(function(t){return t.opacity>0.02;});trophies.forEach(function(t){t.vy+=t.gravity;t.x+=t.vx;t.y+=t.vy;t.opacity*=0.995;ctx.save();ctx.globalAlpha=t.opacity;ctx.translate(t.x,t.y);ctx.rotate(t.rotation);ctx.font=t.size+"px serif";ctx.textAlign="center";ctx.fillText("\ud83c\udfc6",0,0);ctx.restore();});if(trophies.length>0)requestAnimationFrame(draw);}
   draw();
 }
 
