@@ -1,35 +1,44 @@
 # GoldenWestBanner
 ### Automated Student Eligibility Pipeline — Golden West College
 
-A proactive notification system that matches students to campus support programs (EOPS, CARE, CalWORKs, and more) based on their enrollment data, sends personalized emails with trackable accept/opt-out links, and provides staff with a real-time outreach dashboard.
+A proactive notification system that matches students to campus support programs based on their enrollment data, sends personalized emails with trackable accept/opt-out links, provides an SMS notification flow, and gives staff a real-time outreach dashboard.
+
+---
+
+## Live Demo Links
+
+| Page | URL |
+|------|-----|
+| Staff Dashboard | http://gwc-eligibility-portal.s3-website-us-west-2.amazonaws.com/index.html |
+| Email Demo | http://gwc-eligibility-portal.s3-website-us-west-2.amazonaws.com/email-preview.html |
+| Phone SMS Demo | http://gwc-eligibility-portal.s3-website-us-west-2.amazonaws.com/phone.html |
 
 ---
 
 ## What It Does
 
-1. **Checks eligibility** — rules engine evaluates each student against program criteria
+1. **Checks eligibility** — rules engine evaluates each student against 8 program criteria
 2. **Sends personalized emails** — via AWS SES with Accept and Opt-out links
-3. **Tracks responses** — records who clicked, who opted in/out, who hasn't responded
-4. **Alerts staff** — shows time-based urgency (24h yellow warning, 48h red alert)
-5. **Exports to Slate** — CSV export formatted for direct import into Technolutions Slate CRM
+3. **SMS notifications** — students can reply Y/N to opt in or out
+4. **Tracks responses** — records who clicked, who opted in/out, who hasn't responded
+5. **Alerts staff** — shows time-based urgency (24h yellow warning, 48h red alert)
+6. **Exports to Slate** — CSV export formatted for direct import into Slate CRM
 
 ---
 
 ## Architecture
 
 ```
-students.js (UI rules engine)  →  DynamoDB (tracking/actions)  →  Portal UI (dashboard)
-                                        ↕
-                                   AWS SES (emails)
-                                        ↕
-                                   Phone mockup (SMS simulation)
+S3 (static frontend)  →  API Gateway  →  Lambda  →  DynamoDB
+                                                  →  SES (emails)
 ```
 
-- **Portal UI** (`public/index.html`) — Team-13 student dashboard showing eligibility + tracking status
-- **Backend API** (`src/app/api/`) — Next.js API routes that read/write DynamoDB and send emails
-- **DynamoDB** — stores student eligibility status, email tracking, opt-in/out decisions, staff notes
-- **AWS SES** — sends personalized emails with trackable accept/opt-out links
-- **Phone mockup** (`/phone`) — simulates SMS notifications with Y/N reply handling
+- **S3** — hosts the dashboard, email demo, phone demo (permanent public URL)
+- **Lambda** (`gwc-opt-in-handler`) — handles all API calls (tracking, accept, optout, SMS replies)
+- **API Gateway** — routes requests to Lambda (public, no auth for demo)
+- **DynamoDB** — stores student eligibility status, email tracking, opt-in/out decisions
+- **SES** — sends personalized emails with trackable links
+- **tracking.js** — separate file that syncs DynamoDB status to the dashboard UI (never overwrite on UI updates)
 
 ---
 
@@ -48,137 +57,130 @@ students.js (UI rules engine)  →  DynamoDB (tracking/actions)  →  Portal UI 
 
 ---
 
-## Running Locally
-
-```bash
-# Install dependencies
-npm install
-
-# Set up AWS credentials (needed for DynamoDB + SES)
-aws sso login --profile YOUR_PROFILE
-eval "$(aws configure export-credentials --profile YOUR_PROFILE --format env)"
-
-# Start the dev server
-AWS_REGION=us-west-2 npm run dev
-
-# Seed the database with 25 students
-open http://localhost:3000/api/seed
-
-# Send emails to all eligible students
-curl -X POST http://localhost:3000/api/send-emails-batch
-
-# Open the dashboard
-open http://localhost:3000/index.html
-
-# Open the phone SMS mockup
-open http://localhost:3000/phone
-```
-
-Requires Node.js 18+ and AWS credentials with DynamoDB/SES access.
-
----
-
-## API Endpoints
-
-| Endpoint | Method | What it does |
-|----------|--------|-------------|
-| `/api/seed` | GET | Seeds DynamoDB with 25 students (same as portal UI) |
-| `/api/send-emails-batch` | POST | Sends emails to all confirmed students (idempotent) |
-| `/api/accept?token=xxx` | GET | Student clicks Accept link — records in DynamoDB, shows confetti |
-| `/api/optout?token=xxx` | GET | Student clicks Opt-out link — records in DynamoDB |
-| `/api/tracking` | GET | Returns tracking status for all students |
-| `/api/sms-reply` | POST | Handles Y/N SMS replies from phone mockup |
-| `/api/sms-accept` | POST | Records SMS opt-in directly by CWID |
-| `/api/sms-optout` | POST | Records SMS opt-out directly by CWID |
-| `/api/test-time` | GET | Backdates emails for 24h/48h alert demo |
-| `/api/cron/check-outreach` | GET | Flags students who haven't responded after 3 days |
-| `/api/dashboard` | GET | Returns data for staff views |
-| `/api/dashboard/export` | GET | Downloads CSV for Slate import |
-| `/api/dashboard/note` | POST | Staff adds notes/logs calls per student |
-
----
-
 ## Project Structure
 
 ```
 GoldenWestBanner/
-├── public/                          ← Dashboard UI (Team-13)
-│   ├── index.html                   Main portal page
-│   ├── index.js                     Frontend logic
-│   ├── portal.js                    Admin panel + eligibility modal + tracking overlay
+├── public/                          ← Hosted on S3 (the live site)
+│   ├── index.html                   Staff dashboard
+│   ├── index.js                     UI interactions
+│   ├── portal.js                    Admin panel + eligibility modal
 │   ├── students.js                  Student data + eligibility rules engine
+│   ├── tracking.js                  DynamoDB sync (DO NOT overwrite on UI updates)
+│   ├── email-preview.html           Email demo (cycles through students)
+│   ├── phone.html                   SMS demo (iPhone mockup)
 │   ├── styles/styles.css            Styling
+│   ├── images/                      GWC logo + icons
 │   ├── records/                     Individual student record pages
+│   ├── txt files/                   Decision export samples
 │   └── widget/                      Standalone widget for GWC's Banner portal
-├── src/
-│   ├── app/
-│   │   ├── api/                     All backend API routes
-│   │   ├── phone/page.tsx           SMS phone mockup page
-│   │   ├── layout.tsx               Root layout
-│   │   └── page.tsx                 Redirects to /index.html
-│   ├── components/
-│   │   ├── PhoneMockup.tsx          iPhone SMS simulation component
-│   │   └── SmsSimulationPanel.tsx   SMS panel (fetches students from DynamoDB)
-│   └── lib/
-│       ├── db/schema.ts             Database schema (Slate-ready field names)
-│       ├── db/store.ts              DynamoDB read/write operations
-│       ├── programsEligibility.ts   Multi-program eligibility engine
-│       └── sms/sendSms.ts           SMS module (ready, disabled until sender registered)
+├── src/                             ← Localhost tools (seed + send emails)
+│   ├── app/api/seed/                Seeds DynamoDB with students
+│   ├── app/api/send-emails-batch/   Sends real emails via SES
+│   ├── app/api/test-time/           Demo helper (backdate emails)
+│   ├── app/api/cron/                Nightly outreach check
+│   ├── app/api/dashboard/export/    CSV export for Slate
+│   └── lib/db/                      DynamoDB schema + store
 ├── data/
 │   └── eligibility_from_ui.json     Pre-computed eligibility (from students.js rules)
-├── presentation.pptx                10-slide presentation for Canva
-├── SLATE_MIGRATION_GUIDE.md         Step-by-step for school staff to import into Slate
-├── WIDGET_IMPLEMENTATION_GUIDE.md   How to add the popup widget to GWC's portal
-├── README.md
-├── package.json
-└── .gitignore
+├── EMAIL_SCHEDULE.md                Email anti-spam rules documentation
+├── SLATE_MIGRATION_GUIDE.md         Step-by-step for Slate import
+├── WIDGET_IMPLEMENTATION_GUIDE.md   How to add widget to GWC's portal
+└── README.md
 ```
 
 ---
 
-## AWS Resources Used
+## AWS Resources
 
 | Service | Resource | Purpose |
 |---------|----------|---------|
-| DynamoDB | `ep_students` table + GSI | Student eligibility + tracking data |
-| DynamoDB | `ep_accept_tokens` table | Trackable email link tokens |
-| DynamoDB | `ep_outreach_log` table | Audit log of all actions |
-| SES | Sandbox mode | Sends notification emails |
+| S3 | `gwc-eligibility-portal` | Hosts static frontend |
+| Lambda | `gwc-opt-in-handler` | API logic (tracking, accept, optout, SMS) |
+| API Gateway | `gwc-opt-in-api` | Routes HTTP requests to Lambda |
+| DynamoDB | `ep_students` | Student records + tracking |
+| DynamoDB | `ep_accept_tokens` | Trackable email/optout link tokens |
+| DynamoDB | `ep_outreach_log` | Audit log |
+| SES | Sandbox mode | Email delivery |
 
 Region: `us-west-2`
 
 ---
 
-## Key Design Decisions
+## Running Locally (Seed + Send Emails)
 
-**Rules-based, not AI** — eligibility criteria are fixed legal requirements (California Title 5). A rules engine is deterministic, free, instant, and auditable. No Bedrock/AI needed.
+```bash
+# Install dependencies
+npm install
 
-**Idempotent email sending** — re-running the send job never spams students. It checks `ep_[program]_email_sent` before sending.
+# Login to AWS
+aws sso login --profile YOUR_PROFILE
 
-**Slate-ready field naming** — all fields use the `ep_` prefix so they map directly to Slate custom fields on import.
+# Start dev server with AWS credentials
+eval "$(aws configure export-credentials --profile YOUR_PROFILE --format env)"
+FORCE_SEND=true AWS_REGION=us-west-2 npm run dev
 
-**Single source of truth** — DynamoDB holds all tracking data. The portal UI, phone mockup, and staff tools all read from the same place.
+# Seed DynamoDB with students
+curl http://localhost:3000/api/seed
+
+# Send emails (max 3 per batch)
+curl -X POST http://localhost:3000/api/send-emails-batch
+```
+
+---
+
+## Updating the UI
+
+When replacing frontend files (portal.js, index.js, students.js, styles):
+
+1. Replace the files in `public/`
+2. Make sure `portal.js` contains: `window._refreshAdmin = function() { renderAnalytics(); renderRoster(); };`
+3. **DO NOT remove `tracking.js`** from `index.html`
+4. Upload to S3: `aws s3 sync public/ s3://gwc-eligibility-portal/`
+
+---
+
+## Email Anti-Spam Rules
+
+See `EMAIL_SCHEDULE.md` for full details:
+- Max 3 emails per student per program
+- 3 business days between emails
+- Business hours only (Mon-Fri 8AM-5PM Pacific)
+- Stop immediately after click (accept or opt-out)
 
 ---
 
 ## Migrating to Slate
 
-See `SLATE_MIGRATION_GUIDE.md` for complete step-by-step instructions. Summary:
+See `SLATE_MIGRATION_GUIDE.md` — step-by-step for non-technical staff:
 1. Create `ep_` custom fields in Slate
 2. Export CSV from `/api/dashboard/export`
-3. Import CSV into Slate (matches by CWID)
-4. Set up Slate Rules to automate follow-ups
-5. Slate takes over email/SMS/tracking natively
+3. Import into Slate (matches by CWID)
+4. Set up Slate Rules for automation
+5. Slate takes over email/SMS/tracking
+
+---
+
+## Key Design Decisions
+
+**Rules-based, not AI** — eligibility criteria are fixed legal requirements (California Title 5). Deterministic, free, instant, auditable.
+
+**Tracking separate from UI** — `tracking.js` is its own file so UI updates never break the DynamoDB connection.
+
+**Single Accept button** — one click accepts all qualified programs. No per-program friction.
+
+**Idempotent sending** — re-running the send job never spams students.
+
+**Slate-ready field naming** — all fields use `ep_` prefix for direct CSV import.
 
 ---
 
 ## Built With
 
-- [Next.js 14](https://nextjs.org) — App Router
-- [TypeScript](https://www.typescriptlang.org)
-- [AWS DynamoDB](https://aws.amazon.com/dynamodb/) — Database
-- [AWS SES](https://aws.amazon.com/ses/) — Email delivery
-- UI by **Team-13 / DXHub**
+- AWS (S3, Lambda, API Gateway, DynamoDB, SES)
+- Next.js (localhost tools only)
+- TypeScript
+- UI by Team-13 / DXHub
 - GWC brand colors: Primary Green `#0F603D`, Gold `#FFC522`
 
 ---
