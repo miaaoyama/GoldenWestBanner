@@ -177,9 +177,13 @@ function renderSms() {
 
   var body;
   if (alreadyAccepted) {
-    body = "[Golden West College]\n\nHi " + firstName + "! You have already been accepted into: " + confirmed.join(", ") + ".\n\nThank you! Your counselor will be in touch with next steps.";
+    body = "[Golden West College]\n\nCongratulations " + firstName + "! You are 100% eligible for:\n\u2022 " + confirmed.join("\n\u2022 ") + "\n\nReply Y to opt in or N to opt out.";
+    if (conditional.length > 0) body += "\n\nYou may also qualify for " + conditional.join(", ") + " once documents are received.";
+    body += "\n\nQuestions? (714) 892-7711";
   } else if (alreadyOptedOut) {
-    body = "[Golden West College]\n\nHi " + firstName + ", you previously opted out of program notifications.\n\nIf you've changed your mind, visit Student Services or call (714) 892-7711 ext. 55327.";
+    body = "[Golden West College]\n\nCongratulations " + firstName + "! You are 100% eligible for:\n\u2022 " + confirmed.join("\n\u2022 ") + "\n\nReply Y to opt in or N to opt out.";
+    if (conditional.length > 0) body += "\n\nYou may also qualify for " + conditional.join(", ") + " once documents are received.";
+    body += "\n\nQuestions? (714) 892-7711";
   } else {
     body = "[Golden West College]\n\nCongratulations " + firstName + "! You are 100% eligible for:\n\u2022 " + confirmed.join("\n\u2022 ") + "\n\nReply Y to opt in or N to opt out.";
     if (conditional.length > 0) body += "\n\nYou may also qualify for " + conditional.join(", ") + " once documents are received.";
@@ -197,13 +201,23 @@ function sendReply() {
   var lower = text.toLowerCase();
   showTyping(function() {
     if (lower === "y" || lower === "yes") {
-      fetch(API+"/api/sms-reply",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"accept",studentName:currentStudent.name})}).catch(function(){});
-      var confirmed = Object.entries(currentStudent.programs).filter(function(e){return e[1].eligibility==="confirmed";}).map(function(e){return e[1].displayName;});
-      addMessage("Thank you! You have been opted in to:\n\u2022 " + confirmed.join("\n\u2022 ") + "\n\nMake an appointment with a counselor within 1-2 business days.\n\nWelcome to the program! \ud83c\udf89\n\nhttps://www.goldenwestcollege.edu/counseling/index.html", "incoming");
-      showConfetti();
+      var alreadyIn = Object.values(currentStudent.programs).some(function(p){return p.status==="opted_in";});
+      if (alreadyIn) {
+        addMessage("Hi " + currentStudent.name.split(" ")[0] + "! You have already been accepted into: " + Object.entries(currentStudent.programs).filter(function(e){return e[1].eligibility==="confirmed";}).map(function(e){return e[1].displayName;}).join(", ") + ".\n\nThank you! Your counselor will be in touch with next steps.", "incoming");
+      } else {
+        fetch(API+"/api/sms-reply",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"accept",studentName:currentStudent.name})}).catch(function(){});
+        var confirmed = Object.entries(currentStudent.programs).filter(function(e){return e[1].eligibility==="confirmed";}).map(function(e){return e[1].displayName;});
+        addMessage("Thank you! You have been opted in to:\n\u2022 " + confirmed.join("\n\u2022 ") + "\n\nMake an appointment with a counselor within 1-2 business days.\n\nWelcome to the program! \ud83c\udf89\n\nhttps://www.goldenwestcollege.edu/counseling/index.html", "incoming");
+        showConfetti();
+      }
     } else if (lower === "n" || lower === "no") {
-      fetch(API+"/api/sms-reply",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"optout",studentName:currentStudent.name})}).catch(function(){});
-      addMessage("You have been opted out. If you change your mind, you can contact the EOPS office at (714) 892-7711 ext. 55327 or visit goldenwestcollege.edu/eops anytime.", "incoming");
+      var alreadyOut = Object.values(currentStudent.programs).some(function(p){return p.status==="opted_out";});
+      if (alreadyOut) {
+        addMessage("You have already opted out of these programs. If you've changed your mind, visit Student Services or call (714) 892-7711 ext. 55327.", "incoming");
+      } else {
+        fetch(API+"/api/sms-reply",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"optout",studentName:currentStudent.name})}).catch(function(){});
+        addMessage("You have been opted out. If you change your mind, you can contact the EOPS office at (714) 892-7711 ext. 55327 or visit goldenwestcollege.edu/eops anytime.", "incoming");
+      }
     } else {
       addMessage("Sorry, we didn't understand that. Please reply Y to opt in or N to opt out.", "incoming");
     }
