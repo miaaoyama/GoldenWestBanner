@@ -201,23 +201,7 @@
   })();
 </script>
 
-<!-- =====================================================================
-     GWC Eligibility Notification Widget (backend integration)
-     Standalone, self-contained popup. It calls the backend /api/tracking
-     endpoint; if the API is unreachable it silently does nothing, so it
-     never breaks the page.
-
-     BEFORE GOING LIVE, replace the two placeholders below:
-       data-api  → the deployed backend base URL
-                   (local dev per README: http://localhost:3000)
-       data-cwid → the logged-in student's CWID from the portal session.
-                   T00154237 is the default demo student (Maria Delgado);
-                   swap for the real session value in production.
-     Removing this single <script> tag removes the widget completely.
-     ===================================================================== -->
-        data-cwid="T00154237"
-        data-api="http://localhost:3000"></script>
-
 <script src="tracking.js"></script>
 </body>
+</html>
 </html>

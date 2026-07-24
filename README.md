@@ -145,7 +145,7 @@ GoldenWestBanner/
 | DynamoDB | `ep_outreach_log` table | Audit log of all actions |
 | SES | Sandbox mode | Sends notification emails |
 
-Region: `us-west-2` | Account: `731049002539`
+Region: `us-west-2`
 
 ---
 
