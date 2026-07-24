@@ -35,6 +35,7 @@ const OVERRIDE_TO_EMAIL = process.env.SES_OVERRIDE_TO || null;
 
 const MAX_EMAIL_ATTEMPTS = 3;
 const DAYS_BETWEEN_EMAILS = 3;
+const MAX_SEND_PER_BATCH = 3;
 
 // ── Business hours check (Pacific Time) ───────────────────────────────────
 
@@ -108,6 +109,9 @@ export async function POST() {
   let skippedTooSoon = 0;
 
   for (const student of allStudents) {
+    // Stop after MAX_SEND_PER_BATCH emails
+    if (results.length >= MAX_SEND_PER_BATCH) break;
+
     const programs: string[] = [];
     const links: Record<string, string> = {};
     const s = student as unknown as Record<string, unknown>;
@@ -147,7 +151,14 @@ export async function POST() {
 
     // Use the first program's token for the single accept link
     const firstLink = links[programs[0].toLowerCase()];
-    const firstOptoutToken = Object.values(links)[0]?.split("token=")[1] || "";
+    // Store optout tokens separately
+    const optoutLinks: Record<string, string> = {};
+    for (const p of programs) {
+      const key = p.toLowerCase();
+      const optoutToken = await createAcceptToken(student.cwid, key + "_optout");
+      optoutLinks[key] = optoutToken.token;
+    }
+    const firstOptoutToken = Object.values(optoutLinks)[0] || "";
 
     const attemptNote = attempts > 1 ? `<p style="font-size:12px;color:#92400e;margin-top:12px;background:#fffbeb;padding:8px 12px;border-radius:6px;">This is reminder ${attempts} of ${MAX_EMAIL_ATTEMPTS}. Click Accept or Opt Out to stop receiving these.</p>` : "";
 
