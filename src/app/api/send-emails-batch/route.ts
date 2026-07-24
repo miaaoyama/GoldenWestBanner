@@ -29,7 +29,7 @@ import type { StudentRecord } from "@/lib/db/schema";
 export const dynamic = "force-dynamic";
 
 const ses = new SESv2Client({ region: process.env.APP_AWS_REGION || process.env.AWS_REGION || "us-west-2" });
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://3mag8ec9a2.execute-api.us-west-2.amazonaws.com/prod";
 const FROM_EMAIL = process.env.SES_FROM_EMAIL || "dankim2022@gmail.com";
 const OVERRIDE_TO_EMAIL = process.env.SES_OVERRIDE_TO || null;
 
@@ -140,11 +140,14 @@ export async function POST() {
     const attempts = (s.ep_eops_email_attempts as number) || (s.ep_care_email_attempts as number) || (s.ep_calworks_email_attempts as number) || 1;
 
     // Build email HTML
+    // Build program rows (just name + checkmark, no per-row buttons)
     const programList = programs.map((p) => {
-      const key = p.toLowerCase();
-      const link = links[key];
-      return `<tr><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;">${p}</td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">100% Qualified</td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;"><a href="${link}" style="background:#0F603D;color:#fff;padding:6px 14px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:600;">Accept →</a> <a href="${BASE_URL}/api/optout?token=${links[key]?.split('token=')[1] || ''}" style="color:#9ca3af;font-size:11px;margin-left:8px;text-decoration:underline;">Opt out</a></td></tr>`;
+      return `<tr><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;">${p}</td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;"><span style="background:#0F603D;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;">100% Qualified</span></td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">✓</td></tr>`;
     }).join("");
+
+    // Use the first program's token for the single accept link
+    const firstLink = links[programs[0].toLowerCase()];
+    const firstOptoutToken = Object.values(links)[0]?.split("token=")[1] || "";
 
     const attemptNote = attempts > 1 ? `<p style="font-size:12px;color:#92400e;margin-top:12px;background:#fffbeb;padding:8px 12px;border-radius:6px;">This is reminder ${attempts} of ${MAX_EMAIL_ATTEMPTS}. Click Accept or Opt Out to stop receiving these.</p>` : "";
 
@@ -154,9 +157,10 @@ export async function POST() {
         <div style="padding:24px;">
           <p style="font-size:15px;color:#1a2a20;">Hi ${student.first_name},</p>
           <p style="font-size:15px;color:#374151;margin-top:12px;">Based on your enrollment records, you qualify for the following support programs at GWC:</p>
-          <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;"><thead><tr style="background:#f2f8f5;"><th style="padding:8px 12px;text-align:left;">Program</th><th style="padding:8px 12px;text-align:left;">Status</th><th style="padding:8px 12px;text-align:left;">Action</th></tr></thead><tbody>${programList}</tbody></table>
+          <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;"><thead><tr style="background:#f2f8f5;"><th style="padding:8px 12px;text-align:left;">Program</th><th style="padding:8px 12px;text-align:left;">Status</th><th style="padding:8px 12px;text-align:left;"></th></tr></thead><tbody>${programList}</tbody></table>
           ${attemptNote}
-          <p style="font-size:13px;color:#6b7280;margin-top:16px;">Click "Accept" to confirm your spot or "Opt out" to stop receiving these notifications.</p>
+          <div style="text-align:center;margin:24px 0 16px;"><a href="${firstLink}" style="background:#0F603D;color:#fff;padding:12px 32px;border-radius:10px;font-size:15px;font-weight:700;text-decoration:none;display:inline-block;">Accept All Programs →</a></div>
+          <p style="text-align:center;"><a href="${BASE_URL}/api/optout?token=${firstOptoutToken}" style="color:#9ca3af;font-size:12px;text-decoration:underline;">No thanks — opt out of all</a></p>
           <p style="font-size:11px;color:#9ca3af;margin-top:20px;border-top:1px solid #e5e7eb;padding-top:12px;">Golden West College | 15744 Goldenwest St, Huntington Beach, CA 92647</p>
         </div>
       </div>`;
