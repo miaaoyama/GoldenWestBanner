@@ -20,8 +20,8 @@ The widget checks the backend first — if the student already accepted or opted
 ## Prerequisites
 
 Before implementing, confirm:
-- [ ] The backend server is running (the Node.js app with DynamoDB)
-- [ ] You know the backend URL (e.g., `https://your-app.amplifyapp.com` or the ngrok URL during testing)
+- [ ] The Lambda API is running (it's always on — serverless)
+- [ ] You know the API URL: `https://3mag8ec9a2.execute-api.us-west-2.amazonaws.com/prod`
 - [ ] You can edit the HTML template for the student portal page
 
 ---
@@ -53,7 +53,7 @@ Paste this line **just before the closing `</body>` tag**:
 
 | Placeholder | What to put | Example |
 |-------------|-------------|---------|
-| `YOUR-BACKEND-URL` | The URL where the Node.js app is hosted | `https://main.dhf1sjpqx97t2.amplifyapp.com` |
+| `YOUR-BACKEND-URL` | The API URL (Lambda + API Gateway) | `https://3mag8ec9a2.execute-api.us-west-2.amazonaws.com/prod` |
 | `STUDENT_CWID_HERE` | The logged-in student's CWID from the session | Depends on your portal system (see Step 3) |
 
 ---
@@ -158,7 +158,7 @@ Additionally:
 
 | File | Location | Purpose |
 |------|----------|---------|
-| `gwc-eligibility-widget.js` | `/public/widget/` on the backend server | The widget itself |
+| `gwc-eligibility-widget.js` | S3: `gwc-eligibility-portal` bucket `/widget/` | The widget itself |
 | `/api/tracking` | Backend API | Checks student status |
 | DynamoDB `ep_students` table | AWS | Stores who accepted/opted out |
 
