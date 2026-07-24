@@ -81,7 +81,7 @@ body { background: #1a1a2e; margin: 0; font-family: -apple-system, 'SF Pro Text'
 
     <div class="nav-header">
       <span class="nav-back">‹</span>
-      <div class="avatar-circle"><span class="avatar-text">GWC</span></div>
+      <div class="avatar-circle"><img src="/images/gwc-logo-phone.png" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" /></div>
       <div>
         <div class="contact-name">Golden West College</div>
         <div class="contact-sub">Text Message</div>
@@ -89,8 +89,8 @@ body { background: #1a1a2e; margin: 0; font-family: -apple-system, 'SF Pro Text'
     </div>
 
     <div class="messages-area" id="messages">
-      <div class="empty-state">
-        <div class="empty-badge"><span class="empty-badge-text">GWC</span></div>
+      <div class="empty-state" id="emptyState">
+        <img src="/images/gwc-logo-phone.png" style="width:50px;height:50px;border-radius:50%;object-fit:cover;margin-bottom:10px;" />
         <p class="empty-name">Golden West College</p>
         <p class="empty-hint">Text Message</p>
       </div>
@@ -160,6 +160,8 @@ function sendToNextStudent() {
 
 function renderSms() {
   document.getElementById("messages").innerHTML = "";
+  var empty = document.getElementById("emptyState");
+  if (empty) empty.style.display = "none";
 
   var firstName = currentStudent.name.split(" ")[0];
   var confirmed = Object.entries(currentStudent.programs).filter(function(e){return e[1].eligibility==="confirmed";}).map(function(e){return e[1].displayName;});
