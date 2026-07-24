@@ -1,4 +1,8 @@
 # GoldenWestBanner
+### CANVA LINK FOR PRESENTATION 
+
+https://canva.link/yinchl0ksefm1kj
+
 ### Automated Student Eligibility Pipeline — Golden West College
 
 A proactive notification system that matches students to campus support programs based on their enrollment data, sends personalized emails with trackable accept/opt-out links, provides an SMS notification flow, and gives staff a real-time outreach dashboard.
